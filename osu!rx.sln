@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29519.87
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "osu!rx", "osu!rx\osu!rx.csproj", "{F4521520-4650-47DD-BE31-E44C21D0EEE6}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F4521520-4650-47DD-BE31-E44C21D0EEE6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F4521520-4650-47DD-BE31-E44C21D0EEE6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F4521520-4650-47DD-BE31-E44C21D0EEE6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F4521520-4650-47DD-BE31-E44C21D0EEE6}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {51C22103-DE21-4AD0-9D58-663B5D2B95E8}
+	EndGlobalSection
+EndGlobal
