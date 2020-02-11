@@ -1,5 +1,7 @@
 # osu-rx
-osu!standard relax hack
+osu!standard relax hack  
+
+Latest builds are available at https://www.mpgh.net/forum/showthread.php?t=1488076
 
 ## Current state
 This project is heavily under development.  
