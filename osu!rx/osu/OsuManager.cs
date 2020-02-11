@@ -53,6 +53,15 @@ namespace osu_rx.osu
                 return (bool)data.GetType().GetField("LPlayerLoaded").GetValue(data);
             }
         }
+        
+        public bool IsInReplayMode
+        {
+            get
+            {
+                var data = bulkClientDataMethod.Invoke(interProcessOsu, null);
+                return (bool)data.GetType().GetField("LReplayMode").GetValue(data);
+            }
+        }
 
         public string BeatmapChecksum
         {
@@ -98,7 +107,7 @@ namespace osu_rx.osu
 
         public bool CanPlay
         {
-            get => CurrentState == OsuStates.Play && IsPlayerLoaded;
+            get => CurrentState == OsuStates.Play && IsPlayerLoaded && !IsInReplayMode;
         }
 
         public string PathToOsu { get; private set; }

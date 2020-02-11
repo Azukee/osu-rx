@@ -27,7 +27,7 @@ namespace osu_rx
             if (!osuManager.Initialize())
             {
                 Console.WriteLine();
-                Console.WriteLine("The program will close in 5 seconds...");
+                Console.WriteLine("osu!rx will close in 5 seconds...");
                 Thread.Sleep(5000);
                 Environment.Exit(0);
             }
@@ -176,7 +176,11 @@ namespace osu_rx
                 return defaultKey;
         }
 
+        // ATTENTION!
+        // Please value your life and don't look, touch or do anything with the code below, it's bad. I warned you.
+        // ATTENTION!
         #region Relax stuff
+        //TODO: move to its own class (and rewrite)
         private static void StartRelax()
         {
             bool shouldExit = false;
@@ -210,9 +214,9 @@ namespace osu_rx
                 if (beatmap == null)
                 {
                     Console.Clear();
-                    Console.WriteLine("Beatmap not found! Please select another beatmap, reimport this one or restart osu! to fix this issue.\n\nPress any key to return to main menu...");
-                    shouldExit = true;
-                    Console.ReadKey();
+                    Console.WriteLine("Beatmap not found! Please select another beatmap, reimport this one or restart osu! to fix this issue.\n\nPress ESC to return to main menu...");
+                    while (!shouldExit)
+                        Thread.Sleep(5);
                     break;
                 }
 
@@ -234,6 +238,7 @@ namespace osu_rx
                         releaseAllKeys();
                     }
 
+                    //TODO: hitscan
                     if (currentTime < (isHit ? currentHitObject.EndTime : currentHitObject.StartTime) || osuManager.IsPaused)
                         continue;
 
@@ -295,6 +300,7 @@ namespace osu_rx
             input.Mouse.RightButtonUp();
         }
 
+        //TODO: better (and not shocking) humanization implementation
         private static int lastEndTime = 0;
         private static int elapsed = 0;
         private static int kps = 0;

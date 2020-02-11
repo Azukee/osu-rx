@@ -74,6 +74,6 @@ namespace osu_rx.Configuration
     public enum AudioTimeScanTypes
     {
         IPC,
-        Memory
+        Memory //TODO: implement
     }
 }
