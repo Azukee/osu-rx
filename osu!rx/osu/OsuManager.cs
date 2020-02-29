@@ -165,6 +165,8 @@ namespace osu_rx.osu
                 return false;
             }
 
+            osuProcess.EnableRaisingEvents = true;
+            osuProcess.Exited += (o, e) => Environment.Exit(0);
             OsuProcess = new OsuProcess(osuProcess);
 
             PathToOsu = Path.GetDirectoryName(OsuProcess.Process.MainModule.FileName);
@@ -204,10 +206,8 @@ namespace osu_rx.osu
         {
             try
             {
-                Console.WriteLine("\nScanning for memory addresses.");
+                Console.Write("\nScanning for memory addresses.");
                 audioTimeAddress = (IntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Constants.AudioTimePattern) + Constants.AudioTimeOffset);
-
-                Console.Write('.');
                 isAudioPlayingAddress = audioTimeAddress + Constants.IsAudioPlayingOffset;
 
                 Console.Write('.');
@@ -222,7 +222,8 @@ namespace osu_rx.osu
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"\nAn error occured: {ex.Message}\n\nPlease report this.");
+                Console.WriteLine($"\nAn error occured (please report this): {ex.ToString()}");
+                Thread.Sleep(3000);
             }
 
             if (audioTimeAddress == IntPtr.Zero || isAudioPlayingAddress == IntPtr.Zero || gameStateAddress == IntPtr.Zero || modsAddress == IntPtr.Zero || replayModeAddress == IntPtr.Zero)
