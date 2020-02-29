@@ -70,7 +70,7 @@ namespace osu_rx.osu
 
         public double ReadDouble(IntPtr address) => BitConverter.ToDouble(ReadMemory(address, sizeof(double)), 0);
 
-        public bool ReadBool(IntPtr address) => ReadInt32(address) == 1;
+        public bool ReadBool(IntPtr address) => BitConverter.ToBoolean(ReadMemory(address, sizeof(bool)), 0);
 
         private byte?[] parsePattern(string pattern)
         {
