@@ -56,6 +56,7 @@
     <Compile Include="Configuration\ConfigManager.cs" />
     <Compile Include="Configuration\Setting.cs" />
     <Compile Include="Configuration\SimpleIniConfig.cs" />
+    <Compile Include="Dependencies\DependencyContainer.cs" />
     <Compile Include="Helpers\Constants.cs" />
     <Compile Include="Helpers\CryptoHelper.cs" />
     <Compile Include="osu\OsuManager.cs" />
