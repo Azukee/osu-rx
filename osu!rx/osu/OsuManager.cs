@@ -15,6 +15,12 @@ namespace osu_rx.osu
 {
     public class OsuManager
     {
+        private IntPtr audioTimeAddress;
+        private IntPtr isAudioPlayingAddress;
+        private IntPtr gameStateAddress;
+        private IntPtr modsAddress;
+        private IntPtr replayModeAddress;
+
         private object interProcessOsu;
         private MethodInfo bulkClientDataMethod;
 
@@ -22,24 +28,40 @@ namespace osu_rx.osu
         private OsuDatabase osuDatabase;
         private string databaseHash;
 
+        public OsuProcess OsuProcess { get; private set; }
+
+        public bool UsingIPCFallback { get; private set; }
+
         public int CurrentTime
         {
             get
             {
+                if (!UsingIPCFallback)
+                    return OsuProcess.ReadInt32(audioTimeAddress);
+
                 var data = bulkClientDataMethod.Invoke(interProcessOsu, null);
                 return (int)data.GetType().GetField("MenuTime").GetValue(data);
             }
         }
 
-        public Mods CurrentMods //TODO: implement
+        public Mods CurrentMods
         {
-            get => Mods.None;
+            get
+            {
+                if (!UsingIPCFallback)
+                    return (Mods)OsuProcess.ReadInt32(modsAddress);
+
+                return Mods.None;
+            }
         }
 
         public bool IsPaused
         {
             get
             {
+                if (!UsingIPCFallback)
+                    return !OsuProcess.ReadBool(isAudioPlayingAddress);
+
                 var data = bulkClientDataMethod.Invoke(interProcessOsu, null);
                 return !(bool)data.GetType().GetField("AudioPlaying").GetValue(data);
             }
@@ -49,6 +71,13 @@ namespace osu_rx.osu
         {
             get
             {
+                if (!UsingIPCFallback)
+                {
+                    OsuProcess.Process.Refresh();
+                    return OsuProcess.Process.MainWindowTitle.Contains('-');
+                }
+
+                //TODO: remove in next release
                 var data = bulkClientDataMethod.Invoke(interProcessOsu, null);
                 return (bool)data.GetType().GetField("LPlayerLoaded").GetValue(data);
             }
@@ -58,6 +87,9 @@ namespace osu_rx.osu
         {
             get
             {
+                if (!UsingIPCFallback)
+                    return OsuProcess.ReadBool(replayModeAddress);
+
                 var data = bulkClientDataMethod.Invoke(interProcessOsu, null);
                 return (bool)data.GetType().GetField("LReplayMode").GetValue(data);
             }
@@ -100,6 +132,9 @@ namespace osu_rx.osu
         {
             get
             {
+                if (!UsingIPCFallback)
+                    return (OsuStates)OsuProcess.ReadInt32(gameStateAddress);
+
                 var data = bulkClientDataMethod.Invoke(interProcessOsu, null);
                 return (OsuStates)data.GetType().GetField("Mode").GetValue(data);
             }
@@ -122,51 +157,25 @@ namespace osu_rx.osu
         {
             Console.WriteLine("Initializing...");
 
-            Process osuProcess = Process.GetProcessesByName("osu!").FirstOrDefault();
+            var osuProcess = Process.GetProcessesByName("osu!").FirstOrDefault();
 
             if (osuProcess == default)
             {
-                Console.WriteLine("osu! process not found! Please launch osu! first!");
+                Console.WriteLine("\nosu! process not found! Please launch osu! first!");
                 return false;
             }
 
-            PathToOsu = Path.GetDirectoryName(osuProcess.MainModule.FileName);
+            OsuProcess = new OsuProcess(osuProcess);
+
+            PathToOsu = Path.GetDirectoryName(OsuProcess.Process.MainModule.FileName);
             parseConfig();
 
-            string assemblyPath = osuProcess.MainModule.FileName;
-
-            var assembly = Assembly.LoadFrom(assemblyPath);
-            var interProcessOsuType = assembly.ExportedTypes.First(a => a.FullName == "osu.Helpers.InterProcessOsu");
-
-            AppDomain.CurrentDomain.AssemblyResolve += (sender, eventArgs) => eventArgs.Name.Contains("osu!") ? Assembly.LoadFrom(assemblyPath) : null;
-
-            interProcessOsu = Activator.GetObject(interProcessOsuType, "ipc://osu!/loader");
-            bulkClientDataMethod = interProcessOsuType.GetMethod("GetBulkClientData");
+            scanMemory();
+            connectToIPC();
 
             initializeBeatmapWatcher();
 
             return true;
-        }
-
-        private double applyModsToDifficulty(double difficulty, double hardrockFactor, Mods mods)
-        {
-            if (mods.HasFlag(Mods.Easy))
-                difficulty = Math.Max(0, difficulty / 2);
-            if (mods.HasFlag(Mods.HardRock))
-                difficulty = Math.Min(10, difficulty * hardrockFactor);
-
-            return difficulty;
-        }
-
-        private double difficultyRange(double difficulty, double min, double mid, double max, Mods mods)
-        {
-            difficulty = applyModsToDifficulty(difficulty, 1.4, mods);
-
-            if (difficulty > 5)
-                return mid + (max - mid) * (difficulty - 5) / 5;
-            if (difficulty < 5)
-                return mid - (mid - min) * (5 - difficulty) / 5;
-            return mid;
         }
 
         private void parseConfig()
@@ -189,6 +198,53 @@ namespace osu_rx.osu
             }
             else
                 SongsPath = $@"{PathToOsu}\Songs";
+        }
+
+        private void scanMemory()
+        {
+            try
+            {
+                Console.WriteLine("\nScanning for memory addresses.");
+                audioTimeAddress = (IntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Constants.AudioTimePattern) + Constants.AudioTimeOffset);
+
+                Console.Write('.');
+                isAudioPlayingAddress = audioTimeAddress + Constants.IsAudioPlayingOffset;
+
+                Console.Write('.');
+                gameStateAddress = (IntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Constants.GameStatePattern) + Constants.GameStateOffset);
+
+                Console.Write('.');
+                modsAddress = (IntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Constants.ModsPattern) + Constants.ModsOffset);
+
+                Console.Write('.');
+                replayModeAddress = (IntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Constants.ReplayModePattern) + Constants.ReplayModeOffset);
+
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"\nAn error occured: {ex.Message}\n\nPlease report this.");
+            }
+
+            if (audioTimeAddress == IntPtr.Zero || isAudioPlayingAddress == IntPtr.Zero || gameStateAddress == IntPtr.Zero || modsAddress == IntPtr.Zero || replayModeAddress == IntPtr.Zero)
+            {
+                Console.WriteLine("\nScanning failed! Using IPC fallback...");
+                UsingIPCFallback = true;
+            }
+        }
+
+        private void connectToIPC()
+        {
+            Console.WriteLine("\nConnecting to IPC...");
+
+            string assemblyPath = OsuProcess.Process.MainModule.FileName;
+
+            var assembly = Assembly.LoadFrom(assemblyPath);
+            var interProcessOsuType = assembly.ExportedTypes.First(a => a.FullName == "osu.Helpers.InterProcessOsu");
+
+            AppDomain.CurrentDomain.AssemblyResolve += (sender, eventArgs) => eventArgs.Name.Contains("osu!") ? Assembly.LoadFrom(assemblyPath) : null;
+
+            interProcessOsu = Activator.GetObject(interProcessOsuType, "ipc://osu!/loader");
+            bulkClientDataMethod = interProcessOsuType.GetMethod("GetBulkClientData");
         }
 
         private void initializeBeatmapWatcher()
@@ -235,6 +291,27 @@ namespace osu_rx.osu
                     onNewBeatmapImport(path);
                 }
             }
+        }
+
+        private double applyModsToDifficulty(double difficulty, double hardrockFactor, Mods mods)
+        {
+            if (mods.HasFlag(Mods.Easy))
+                difficulty = Math.Max(0, difficulty / 2);
+            if (mods.HasFlag(Mods.HardRock))
+                difficulty = Math.Min(10, difficulty * hardrockFactor);
+
+            return difficulty;
+        }
+
+        private double difficultyRange(double difficulty, double min, double mid, double max, Mods mods)
+        {
+            difficulty = applyModsToDifficulty(difficulty, 1.4, mods);
+
+            if (difficulty > 5)
+                return mid + (max - mid) * (difficulty - 5) / 5;
+            if (difficulty < 5)
+                return mid - (mid - min) * (5 - difficulty) / 5;
+            return mid;
         }
     }
 }

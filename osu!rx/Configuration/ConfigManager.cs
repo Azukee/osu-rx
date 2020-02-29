@@ -36,12 +36,6 @@ namespace osu_rx.Configuration
             set => config.SetValue<int>("MaxSingletapBPM", value);
         }
 
-        public AudioTimeScanTypes AudioTimeScanType
-        {
-            get => config.ReadValue<AudioTimeScanTypes>("AudioTimeScanType", AudioTimeScanTypes.IPC);
-            set => config.SetValue<AudioTimeScanTypes>("AudioTimeScanType", value);
-        }
-
         public int AudioOffset
         {
             get => config.ReadValue<int>("AudioOffset", 5);
@@ -69,11 +63,5 @@ namespace osu_rx.Configuration
         Alternate,
         MouseOnly,
         TapX
-    }
-
-    public enum AudioTimeScanTypes
-    {
-        IPC,
-        Memory //TODO: implement
     }
 }

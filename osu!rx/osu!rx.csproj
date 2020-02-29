@@ -56,8 +56,10 @@
     <Compile Include="Configuration\ConfigManager.cs" />
     <Compile Include="Configuration\Setting.cs" />
     <Compile Include="Configuration\SimpleIniConfig.cs" />
+    <Compile Include="Helpers\Constants.cs" />
     <Compile Include="Helpers\CryptoHelper.cs" />
     <Compile Include="osu\OsuManager.cs" />
+    <Compile Include="osu\OsuProcess.cs" />
     <Compile Include="osu\OsuStates.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

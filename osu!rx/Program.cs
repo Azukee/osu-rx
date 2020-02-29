@@ -4,7 +4,6 @@ using OsuParsers.Beatmaps;
 using OsuParsers.Beatmaps.Objects;
 using OsuParsers.Enums;
 using System;
-using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -49,7 +48,7 @@ namespace osu_rx
             version = version.Remove(version.LastIndexOf(".0"));
 
             Console.Clear();
-            Console.WriteLine($"osu!rx v{version} (MPGH release)");
+            Console.WriteLine($"osu!rx v{version} (MPGH release){(osuManager.UsingIPCFallback ? "\n[IPC Fallback mode]" : string.Empty)}");
             Console.WriteLine("\n---Main Menu---");
             Console.WriteLine("\n1. Start relax");
             Console.WriteLine("2. Settings");
@@ -77,9 +76,8 @@ namespace osu_rx
             Console.WriteLine($"3. Secondary key        | [{configManager.SecondaryKey}]");
             Console.WriteLine($"4. Hit window 100 key   | [{configManager.HitWindow100Key}]");
             Console.WriteLine($"5. Max singletap BPM    | [{configManager.MaxSingletapBPM}]");
-            Console.WriteLine($"6. Audio time scan type | [{configManager.AudioTimeScanType}]");
-            Console.WriteLine($"7. Audio offset         | [{configManager.AudioOffset}]");
-            Console.WriteLine($"8. Custom window title  | [{(configManager.UseCustomWindowTitle ? $"ON | {configManager.CustomWindowTitle}" : "OFF")}]");
+            Console.WriteLine($"6. Audio offset         | [{configManager.AudioOffset}]");
+            Console.WriteLine($"7. Custom window title  | [{(configManager.UseCustomWindowTitle ? $"ON | {configManager.CustomWindowTitle}" : "OFF")}]");
             Console.WriteLine("\nESC. Back to main menu");
 
             switch (Console.ReadKey().Key)
@@ -99,19 +97,19 @@ namespace osu_rx
                 case ConsoleKey.D2:
                     Console.Clear();
                     Console.Write("Enter new primary key: ");
-                    configManager.PrimaryKey = parseVirtualKeyCode(Console.ReadLine(), configManager.PrimaryKey);
+                    configManager.PrimaryKey = (VirtualKeyCode)Console.ReadKey().Key;
                     DrawSettings();
                     break;
                 case ConsoleKey.D3:
                     Console.Clear();
                     Console.Write("Enter new secondary key: ");
-                    configManager.SecondaryKey = parseVirtualKeyCode(Console.ReadLine(), configManager.SecondaryKey);
+                    configManager.SecondaryKey = (VirtualKeyCode)Console.ReadKey().Key;
                     DrawSettings();
                     break;
                 case ConsoleKey.D4:
                     Console.Clear();
                     Console.Write("Enter new hit window 100 key: ");
-                    configManager.HitWindow100Key = parseVirtualKeyCode(Console.ReadLine(), configManager.HitWindow100Key);
+                    configManager.HitWindow100Key = (VirtualKeyCode)Console.ReadKey().Key;
                     DrawSettings();
                     break;
                 case ConsoleKey.D5:
@@ -125,15 +123,6 @@ namespace osu_rx
                     break;
                 case ConsoleKey.D6:
                     Console.Clear();
-                    Console.WriteLine("Select new audio time scan type:\n");
-                    Console.WriteLine("1. IPC (Recommended)");
-                    Console.WriteLine("2. Memory (Select this if your game runs below 240 fps) [Not yet implemented]");
-                    Console.ReadKey();
-                    configManager.AudioTimeScanType = AudioTimeScanTypes.IPC;
-                    DrawSettings();
-                    break;
-                case ConsoleKey.D7:
-                    Console.Clear();
                     Console.Write("Enter new audio offset: ");
                     if (int.TryParse(Console.ReadLine(), out int offset))
                         configManager.AudioOffset = offset;
@@ -141,7 +130,7 @@ namespace osu_rx
                         goto case ConsoleKey.D7;
                     DrawSettings();
                     break;
-                case ConsoleKey.D8:
+                case ConsoleKey.D7:
                     Console.Clear();
                     Console.WriteLine("Use custom window title?\n");
                     Console.WriteLine("1. Yes");
@@ -165,15 +154,6 @@ namespace osu_rx
                     DrawSettings();
                     break;
             }
-        }
-
-        private static VirtualKeyCode parseVirtualKeyCode(string input, VirtualKeyCode defaultKey)
-        {
-            VirtualKeyCode parsed;
-            if (Enum.TryParse($"VK_{input.ToUpper()}", out parsed) || Enum.TryParse(input.ToUpper(), out parsed))
-                return parsed;
-            else
-                return defaultKey;
         }
 
         // ATTENTION!
@@ -230,6 +210,8 @@ namespace osu_rx
                 var currentHitObject = randomizeHitObjectTimes(beatmap.HitObjects[index], beatmap, false);
                 while (!shouldExit && osuManager.CanPlay && index < beatmap.HitObjects.Count)
                 {
+                    Thread.Sleep(1);
+
                     int currentTime = osuManager.CurrentTime + audioOffset;
 
                     if (osuManager.IsPaused && isHit)
