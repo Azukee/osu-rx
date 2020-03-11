@@ -40,7 +40,7 @@ namespace osu_rx.osu
 
         public OsuWindow OsuWindow { get; private set; }
 
-        public bool UsingIPCFallback { get; private set; }
+        public bool UsingIPCFallback { get; set; }
 
         public int CurrentTime
         {

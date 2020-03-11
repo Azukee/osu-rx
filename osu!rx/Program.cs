@@ -54,6 +54,9 @@ namespace osu_rx
             Console.WriteLine("\n1. Start relax");
             Console.WriteLine("2. Settings");
 
+            if (osuManager.UsingIPCFallback)
+                Console.WriteLine("\n3. What is IPC Fallback mode?");
+
             switch (Console.ReadKey().Key)
             {
                 case ConsoleKey.D1:
@@ -61,6 +64,12 @@ namespace osu_rx
                     break;
                 case ConsoleKey.D2:
                     DrawSettings();
+                    break;
+                case ConsoleKey.D3:
+                    if (osuManager.UsingIPCFallback)
+                        DrawIPCFallbackInfo();
+                    else
+                        DrawMainMenu();
                     break;
                 default:
                     DrawMainMenu();
@@ -79,6 +88,10 @@ namespace osu_rx
             Console.WriteLine($"5. Max singletap BPM    | [{configManager.MaxSingletapBPM}]");
             Console.WriteLine($"6. Audio offset         | [{configManager.AudioOffset}]");
             Console.WriteLine($"7. Custom window title  | [{(configManager.UseCustomWindowTitle ? $"ON | {configManager.CustomWindowTitle}" : "OFF")}]");
+
+            if (!osuManager.UsingIPCFallback)
+                Console.WriteLine("\n8. Turn on IPC Fallback mode");
+
             Console.WriteLine("\nESC. Back to main menu");
 
             switch (Console.ReadKey().Key)
@@ -148,6 +161,22 @@ namespace osu_rx
                         Console.Title = defaultConsoleTitle;
                     DrawSettings();
                     break;
+                case ConsoleKey.D8:
+                    if (!osuManager.UsingIPCFallback)
+                    {
+                        Console.Clear();
+                        Console.WriteLine("Turn this on manually only if osu!rx works incorrectly for you.");
+                        Console.WriteLine("You won't be able to turn off IPC Fallback mode without restarting osu!rx.");
+                        Console.WriteLine("\nTurn on IPC Fallback mode anyway?");
+                        Console.WriteLine("\n1. Yes");
+                        Console.WriteLine("2. No");
+
+                        osuManager.UsingIPCFallback = Console.ReadKey().Key == ConsoleKey.D1;
+                        DrawSettings();
+                    }
+                    else
+                        DrawSettings();
+                    break;
                 case ConsoleKey.Escape:
                     DrawMainMenu();
                     break;
@@ -200,6 +229,28 @@ namespace osu_rx
             }
 
             DrawMainMenu();
+        }
+
+        private static void DrawIPCFallbackInfo()
+        {
+            Console.Clear();
+            Console.WriteLine("---What is IPC Fallback mode?---");
+            Console.WriteLine("\nIPC Fallback mode automatically turns on when osu!rx fails to find important addresses in game's memory.");
+            Console.WriteLine("While IPC Fallback mode is on, osu!rx will communicate with osu! through IPC to get needed variables.");
+            Console.WriteLine("That means you can use osu!rx even if it's outdated.");
+            Console.WriteLine("\nHowever, IPC Fallback mode has quite a few cons:");
+            Console.WriteLine("\n1. You will experience timing issues if your game is running below 200 fps.");
+            Console.WriteLine("2. You will probably be missing a lot if your game lags/stutters.");
+            Console.WriteLine("3. Mods support will no longer work.\n   That means you won't be able to play hd/ez mods with hitscan and your max singletap bpm won't scale with dt/ht mods.");
+            Console.WriteLine("4. Hitscan will only work with raw input turned off.");
+            Console.WriteLine("5. And you'll probably experience a bunch of other unknown issues.");
+            Console.WriteLine("\nBut hey, you'll still be able to use osu!rx (in some way) even if i die and won't be able to update this piece of junk ;)");
+            Console.WriteLine("\nPress ESC to return to the main menu.");
+
+            if (Console.ReadKey().Key == ConsoleKey.Escape)
+                DrawMainMenu();
+            else
+                DrawIPCFallbackInfo();
         }
     }
 }
