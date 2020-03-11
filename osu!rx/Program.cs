@@ -1,13 +1,11 @@
 ﻿using osu_rx.Configuration;
+using osu_rx.Core;
+using osu_rx.Dependencies;
 using osu_rx.osu;
-using OsuParsers.Beatmaps;
-using OsuParsers.Beatmaps.Objects;
-using OsuParsers.Enums;
 using System;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
-using WindowsInput;
 using WindowsInput.Native;
 
 namespace osu_rx
@@ -16,8 +14,8 @@ namespace osu_rx
     {
         private static OsuManager osuManager;
         private static ConfigManager configManager;
-        private static InputSimulator input;
         private static string defaultConsoleTitle;
+        private static Relax relax;
 
         static void Main(string[] args)
         {
@@ -33,11 +31,14 @@ namespace osu_rx
 
             configManager = new ConfigManager();
 
+            DependencyContainer.Cache(osuManager);
+            DependencyContainer.Cache(configManager);
+
+            relax = new Relax();
+
             defaultConsoleTitle = Console.Title;
             if (configManager.UseCustomWindowTitle)
                 Console.Title = configManager.CustomWindowTitle;
-
-            input = new InputSimulator();
 
             DrawMainMenu();
         }
@@ -48,7 +49,7 @@ namespace osu_rx
             version = version.Remove(version.LastIndexOf(".0"));
 
             Console.Clear();
-            Console.WriteLine($"osu!rx v{version} (MPGH release){(osuManager.UsingIPCFallback ? "\n[IPC Fallback mode]" : string.Empty)}");
+            Console.WriteLine($"osu!rx v{version} (MPGH release){(osuManager.UsingIPCFallback ? " | [IPC Fallback mode]" : string.Empty)}");
             Console.WriteLine("\n---Main Menu---");
             Console.WriteLine("\n1. Start relax");
             Console.WriteLine("2. Settings");
@@ -156,27 +157,16 @@ namespace osu_rx
             }
         }
 
-        // ATTENTION!
-        // Please value your life and don't look, touch or do anything with the code below, it's bad. I warned you.
-        // ATTENTION!
-        #region Relax stuff
-        //TODO: move to its own class (and rewrite)
         private static void StartRelax()
         {
             bool shouldExit = false;
             Task.Run(() =>
             {
-                while (Console.ReadKey().Key != ConsoleKey.Escape && !shouldExit) { }
-                shouldExit = true;
-            });
+                while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
 
-            var playStyle = configManager.PlayStyle;
-            var primaryKey = configManager.PrimaryKey;
-            var hit100Key = configManager.HitWindow100Key;
-            var secondaryKey = configManager.SecondaryKey;
-            int maxBPM = configManager.MaxSingletapBPM;
-            int audioOffset = configManager.AudioOffset;
-            float audioRate = osuManager.CurrentMods.HasFlag(Mods.DoubleTime) ? 1.5f : osuManager.CurrentMods.HasFlag(Mods.HalfTime) ? 0.75f : 1f;
+                shouldExit = true;
+                relax.Stop();
+            });
 
             while (!shouldExit)
             {
@@ -194,136 +184,22 @@ namespace osu_rx
                 if (beatmap == null)
                 {
                     Console.Clear();
-                    Console.WriteLine("Beatmap not found! Please select another beatmap, reimport this one or restart osu! to fix this issue.\n\nPress ESC to return to main menu...");
-                    while (!shouldExit)
-                        Thread.Sleep(5);
-                    break;
+                    Console.WriteLine("Beatmap not found! Please select another beatmap, reimport this one or restart osu! to fix this issue.\n\nReturn to song select to continue or press ESC to return to main menu.");
+
+                    while (osuManager.CanPlay && !shouldExit) ;
+                    if (shouldExit)
+                        break;
+                    continue;
                 }
 
                 Console.Clear();
                 Console.WriteLine($"Playing {beatmap.MetadataSection.Artist} - {beatmap.MetadataSection.Title} ({beatmap.MetadataSection.Creator}) [{beatmap.MetadataSection.Version}]");
                 Console.WriteLine("\nPress ESC to return to the main menu.");
 
-                int index = 0;
-                bool isHit = false;
-                var currentKey = primaryKey;
-                var currentHitObject = randomizeHitObjectTimes(beatmap.HitObjects[index], beatmap, false);
-                while (!shouldExit && osuManager.CanPlay && index < beatmap.HitObjects.Count)
-                {
-                    Thread.Sleep(1);
-
-                    int currentTime = osuManager.CurrentTime + audioOffset;
-
-                    if (osuManager.IsPaused && isHit)
-                    {
-                        isHit = false;
-                        releaseAllKeys();
-                    }
-
-                    //TODO: hitscan
-                    if (currentTime < (isHit ? currentHitObject.EndTime : currentHitObject.StartTime) || osuManager.IsPaused)
-                        continue;
-
-                    if (isHit)
-                    {
-                        releaseAllKeys();
-                        isHit = false;
-                        index++;
-                        if (index < beatmap.HitObjects.Count)
-                            currentHitObject = randomizeHitObjectTimes(beatmap.HitObjects[index], beatmap, input.InputDeviceState.IsKeyDown(hit100Key));
-                    }
-                    else
-                    {
-                        bool shouldStartAlternating = index + 1 < beatmap.HitObjects.Count ? 60000 / (beatmap.HitObjects[index + 1].StartTime - beatmap.HitObjects[index].EndTime) >= maxBPM / (audioRate / 2) : false;
-                        bool shouldAlternate = index > 0 ? 60000 / (beatmap.HitObjects[index].StartTime - beatmap.HitObjects[index - 1].EndTime) >= maxBPM / (audioRate / 2) : false;
-
-                        if (shouldAlternate || playStyle == PlayStyles.Alternate)
-                            currentKey = (currentKey == primaryKey) ? secondaryKey : primaryKey;
-                        else
-                            currentKey = primaryKey;
-
-                        if (playStyle == PlayStyles.MouseOnly)
-                        {
-                            if (currentKey == primaryKey)
-                                input.Mouse.LeftButtonDown();
-                            else
-                                input.Mouse.RightButtonDown();
-                        }
-                        else if (playStyle == PlayStyles.TapX && !shouldAlternate && !shouldStartAlternating)
-                        {
-                            input.Mouse.LeftButtonDown();
-                            currentKey = primaryKey;
-                        }
-                        else
-                            input.Keyboard.KeyDown(currentKey);
-
-                        isHit = true;
-                    }
-                }
-
-                lastEndTime = 0;
-                elapsed = 0;
-                kps = 0;
-                releaseAllKeys();
-
-                while (osuManager.CanPlay && !shouldExit) //waiting just in case user still hasn't exited player
-                    Thread.Sleep(5);
+                relax.Start();
             }
 
-            releaseAllKeys();
             DrawMainMenu();
         }
-
-        private static void releaseAllKeys()
-        {
-            input.Keyboard.KeyUp(configManager.PrimaryKey);
-            input.Keyboard.KeyUp(configManager.SecondaryKey);
-            input.Mouse.LeftButtonUp();
-            input.Mouse.RightButtonUp();
-        }
-
-        //TODO: better (and not shocking) humanization implementation
-        private static int lastEndTime = 0;
-        private static int elapsed = 0;
-        private static int kps = 0;
-        private static HitObject randomizeHitObjectTimes(HitObject hitObject, Beatmap beatmap, bool allowHit100)
-        {
-            var result = new HitObject(hitObject.Position, hitObject.StartTime, hitObject.EndTime, hitObject.HitSound, null, false, 0);
-
-            int hitWindow300 = osuManager.HitWindow300(beatmap.DifficultySection.OverallDifficulty);
-            int hitWindow100 = osuManager.HitWindow100(beatmap.DifficultySection.OverallDifficulty);
-
-            var random = new Random();
-
-            //TODO: everything below should depend on audio rate
-            float acc = kps >= 10 ? 1f : kps >= 5 ? 1.5f : 2f;
-
-            if (allowHit100)
-                result.StartTime += random.Next(-hitWindow100 / 2, hitWindow100 / 2);
-            else
-                result.StartTime += random.Next((int)(-hitWindow300 / acc), (int)(hitWindow300 / acc));
-
-            int circleHoldTime = random.Next(hitWindow300, hitWindow300 * 2);
-            int sliderHoldTime = random.Next(-hitWindow300 / 2, hitWindow300 * 2);
-
-            if (hitObject is HitCircle)
-                result.EndTime = result.StartTime + circleHoldTime;
-            else if (hitObject is Slider)
-                result.EndTime += sliderHoldTime;
-
-            elapsed += result.EndTime - lastEndTime;
-            if (elapsed >= 1000)
-            {
-                kps = 1;
-                elapsed = 0;
-            }
-            else
-                kps++;
-
-            lastEndTime = result.EndTime;
-
-            return result;
-        }
-        #endregion
     }
 }

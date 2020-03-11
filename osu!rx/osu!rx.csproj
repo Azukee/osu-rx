@@ -38,6 +38,7 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Drawing" />
     <Reference Include="System.Numerics" />
     <Reference Include="System.Numerics.Vectors, Version=4.1.4.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\packages\System.Numerics.Vectors.4.5.0\lib\net46\System.Numerics.Vectors.dll</HintPath>
@@ -56,12 +57,15 @@
     <Compile Include="Configuration\ConfigManager.cs" />
     <Compile Include="Configuration\Setting.cs" />
     <Compile Include="Configuration\SimpleIniConfig.cs" />
+    <Compile Include="Core\Relax.cs" />
     <Compile Include="Dependencies\DependencyContainer.cs" />
     <Compile Include="Helpers\Constants.cs" />
     <Compile Include="Helpers\CryptoHelper.cs" />
+    <Compile Include="Helpers\Extensions.cs" />
     <Compile Include="osu\OsuManager.cs" />
     <Compile Include="osu\OsuProcess.cs" />
     <Compile Include="osu\OsuStates.cs" />
+    <Compile Include="osu\OsuWindow.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

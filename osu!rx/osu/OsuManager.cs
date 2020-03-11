@@ -6,20 +6,28 @@ using OsuParsers.Enums;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Numerics;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Threading;
 
 namespace osu_rx.osu
 {
     public class OsuManager
     {
+        [DllImport("user32.dll")]
+        private static extern bool GetCursorPos(out Point point);
+
         private IntPtr audioTimeAddress;
         private IntPtr isAudioPlayingAddress;
         private IntPtr gameStateAddress;
         private IntPtr modsAddress;
         private IntPtr replayModeAddress;
+        private IntPtr cursorPositionXAddress;
+        private IntPtr cursorPositionYAddress;
 
         private object interProcessOsu;
         private MethodInfo bulkClientDataMethod;
@@ -29,6 +37,8 @@ namespace osu_rx.osu
         private string databaseHash;
 
         public OsuProcess OsuProcess { get; private set; }
+
+        public OsuWindow OsuWindow { get; private set; }
 
         public bool UsingIPCFallback { get; private set; }
 
@@ -145,13 +155,53 @@ namespace osu_rx.osu
             get => CurrentState == OsuStates.Play && IsPlayerLoaded && !IsInReplayMode;
         }
 
+        public Vector2 CursorPosition //relative to playfield
+        {
+            get
+            {
+                if (!UsingIPCFallback)
+                {
+                    float x = OsuProcess.ReadFloat(cursorPositionXAddress);
+                    float y = OsuProcess.ReadFloat(cursorPositionYAddress);
+
+                    return new Vector2(x, y) - OsuWindow.PlayfieldPosition;
+                }
+
+                GetCursorPos(out var pos);
+                return pos.ToVector2() - (OsuWindow.WindowPosition + OsuWindow.PlayfieldPosition);
+            }
+        }
+
         public string PathToOsu { get; private set; }
 
         public string SongsPath { get; private set; }
 
-        public int HitWindow300(double od) => (int)difficultyRange(od, 80, 50, 20, CurrentMods);
-        public int HitWindow100(double od) => (int)difficultyRange(od, 140, 100, 60, CurrentMods);
-        public int HitWindow50(double od) => (int)difficultyRange(od, 200, 150, 100, CurrentMods);
+        public int HitWindow300(double od) => (int)DifficultyRange(od, 80, 50, 20);
+        public int HitWindow100(double od) => (int)DifficultyRange(od, 140, 100, 60);
+        public int HitWindow50(double od) => (int)DifficultyRange(od, 200, 150, 100);
+
+        public double AdjustDifficulty(double difficulty) => (ApplyModsToDifficulty(difficulty, 1.3) - 5) / 5;
+
+        public double ApplyModsToDifficulty(double difficulty, double hardrockFactor)
+        {
+            if (CurrentMods.HasFlag(Mods.Easy))
+                difficulty = Math.Max(0, difficulty / 2);
+            if (CurrentMods.HasFlag(Mods.HardRock))
+                difficulty = Math.Min(10, difficulty * hardrockFactor);
+
+            return difficulty;
+        }
+
+        public double DifficultyRange(double difficulty, double min, double mid, double max)
+        {
+            difficulty = ApplyModsToDifficulty(difficulty, 1.4);
+
+            if (difficulty > 5)
+                return mid + (max - mid) * (difficulty - 5) / 5;
+            if (difficulty < 5)
+                return mid - (mid - min) * (5 - difficulty) / 5;
+            return mid;
+        }
 
         public bool Initialize()
         {
@@ -169,6 +219,8 @@ namespace osu_rx.osu
             osuProcess.Exited += (o, e) => Environment.Exit(0);
             OsuProcess = new OsuProcess(osuProcess);
 
+            OsuWindow = new OsuWindow(osuProcess.MainWindowHandle);
+
             PathToOsu = Path.GetDirectoryName(OsuProcess.Process.MainModule.FileName);
             parseConfig();
 
@@ -182,6 +234,8 @@ namespace osu_rx.osu
 
         private void parseConfig()
         {
+            Console.WriteLine("\nParsing osu! config...");
+
             string pathToConfig = $@"{PathToOsu}\osu!.{Environment.UserName}.cfg";
 
             if (File.Exists(pathToConfig))
@@ -216,8 +270,12 @@ namespace osu_rx.osu
                 Console.Write('.');
                 modsAddress = (IntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Constants.ModsPattern) + Constants.ModsOffset);
 
-                Console.WriteLine('.');
+                Console.Write('.');
                 replayModeAddress = (IntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Constants.ReplayModePattern) + Constants.ReplayModeOffset);
+
+                Console.WriteLine('.');
+                cursorPositionXAddress = OsuProcess.FindPattern(Constants.CursorPositionXPattern) + Constants.CursorPositionXOffset;
+                cursorPositionYAddress = cursorPositionXAddress + Constants.CursorPositionYOffset;
 
             }
             catch (Exception ex)
@@ -226,7 +284,9 @@ namespace osu_rx.osu
                 Thread.Sleep(3000);
             }
 
-            if (audioTimeAddress == IntPtr.Zero || isAudioPlayingAddress == IntPtr.Zero || gameStateAddress == IntPtr.Zero || modsAddress == IntPtr.Zero || replayModeAddress == IntPtr.Zero)
+            if (audioTimeAddress == IntPtr.Zero || isAudioPlayingAddress == IntPtr.Zero
+                || gameStateAddress == IntPtr.Zero || modsAddress == IntPtr.Zero || replayModeAddress == IntPtr.Zero
+                || cursorPositionXAddress == IntPtr.Zero || cursorPositionYAddress == IntPtr.Zero)
             {
                 Console.WriteLine("\nScanning failed! Using IPC fallback...");
                 UsingIPCFallback = true;
@@ -250,6 +310,8 @@ namespace osu_rx.osu
 
         private void initializeBeatmapWatcher()
         {
+            Console.WriteLine("\nLooking for beatmaps...");
+
             updateDatabase();
 
             fileSystemWatcher = new FileSystemWatcher(SongsPath);
@@ -292,27 +354,6 @@ namespace osu_rx.osu
                     onNewBeatmapImport(path);
                 }
             }
-        }
-
-        private double applyModsToDifficulty(double difficulty, double hardrockFactor, Mods mods)
-        {
-            if (mods.HasFlag(Mods.Easy))
-                difficulty = Math.Max(0, difficulty / 2);
-            if (mods.HasFlag(Mods.HardRock))
-                difficulty = Math.Min(10, difficulty * hardrockFactor);
-
-            return difficulty;
-        }
-
-        private double difficultyRange(double difficulty, double min, double mid, double max, Mods mods)
-        {
-            difficulty = applyModsToDifficulty(difficulty, 1.4, mods);
-
-            if (difficulty > 5)
-                return mid + (max - mid) * (difficulty - 5) / 5;
-            if (difficulty < 5)
-                return mid - (mid - min) * (5 - difficulty) / 5;
-            return mid;
         }
     }
 }
