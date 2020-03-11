@@ -1,5 +1,6 @@
 ﻿using osu_rx.Configuration;
 using osu_rx.Dependencies;
+using osu_rx.Helpers;
 using osu_rx.osu;
 using OsuParsers.Beatmaps;
 using OsuParsers.Beatmaps.Objects;
@@ -182,7 +183,7 @@ namespace osu_rx.Core
 
             var random = new Random();
 
-            float acc = alternating ? (float)(random.NextDouble() * (1.7 - 1.2) + 1.2) : 2;
+            float acc = alternating ? random.NextFloat(1.2f, 1.7f) : 2;
 
             if (allowHit100)
                 result.StartTime += random.Next(-hitWindow100 / 2, hitWindow100 / 2);

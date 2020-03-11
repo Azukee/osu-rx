@@ -14,8 +14,8 @@ namespace osu_rx
     {
         private static OsuManager osuManager;
         private static ConfigManager configManager;
-        private static string defaultConsoleTitle;
         private static Relax relax;
+        private static string defaultConsoleTitle;
 
         static void Main(string[] args)
         {

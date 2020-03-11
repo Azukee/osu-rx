@@ -92,7 +92,7 @@ namespace osu_rx.osu
                 return (bool)data.GetType().GetField("LPlayerLoaded").GetValue(data);
             }
         }
-        
+
         public bool IsInReplayMode
         {
             get
