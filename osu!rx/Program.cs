@@ -2,6 +2,7 @@
 using osu_rx.Core;
 using osu_rx.Dependencies;
 using osu_rx.osu;
+using OsuParsers.Enums;
 using System;
 using System.Reflection;
 using System.Threading;
@@ -210,10 +211,13 @@ namespace osu_rx
                     break;
 
                 var beatmap = osuManager.CurrentBeatmap;
-                if (beatmap == null)
+                if (beatmap == null || beatmap.GeneralSection.Mode != Ruleset.Standard)
                 {
                     Console.Clear();
-                    Console.WriteLine("Beatmap not found! Please select another beatmap, reimport this one or restart osu! to fix this issue.\n\nReturn to song select to continue or press ESC to return to main menu.");
+                    if (beatmap == null)
+                        Console.WriteLine("Beatmap not found! Please select another beatmap, reimport this one or restart osu! to fix this issue.\n\nReturn to song select to continue or press ESC to return to main menu.");
+                    else
+                        Console.WriteLine("Only osu!standard beatmaps are supported!\n\nReturn to song select to continue or press ESC to return to main menu.");
 
                     while (osuManager.CanPlay && !shouldExit) ;
                     if (shouldExit)
