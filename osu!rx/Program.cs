@@ -58,7 +58,7 @@ namespace osu_rx
             if (osuManager.UsingIPCFallback)
                 Console.WriteLine("\n3. What is IPC Fallback mode?");
 
-            switch (Console.ReadKey().Key)
+            switch (Console.ReadKey(true).Key)
             {
                 case ConsoleKey.D1:
                     StartRelax();
@@ -95,7 +95,7 @@ namespace osu_rx
 
             Console.WriteLine("\nESC. Back to main menu");
 
-            switch (Console.ReadKey().Key)
+            switch (Console.ReadKey(true).Key)
             {
                 case ConsoleKey.D1:
                     Console.Clear();
@@ -103,7 +103,7 @@ namespace osu_rx
                     PlayStyles[] playstyles = (PlayStyles[])Enum.GetValues(typeof(PlayStyles));
                     for (int i = 0; i < playstyles.Length; i++)
                         Console.WriteLine($"{i + 1}. {playstyles[i]}");
-                    if (int.TryParse(Console.ReadKey().KeyChar.ToString(), out int selected) && selected > 0 && selected < 5)
+                    if (int.TryParse(Console.ReadKey(true).KeyChar.ToString(), out int selected) && selected > 0 && selected < 5)
                         configManager.PlayStyle = (PlayStyles)selected - 1;
                     else
                         goto case ConsoleKey.D1;
@@ -112,19 +112,19 @@ namespace osu_rx
                 case ConsoleKey.D2:
                     Console.Clear();
                     Console.Write("Enter new primary key: ");
-                    configManager.PrimaryKey = (VirtualKeyCode)Console.ReadKey().Key;
+                    configManager.PrimaryKey = (VirtualKeyCode)Console.ReadKey(true).Key;
                     DrawSettings();
                     break;
                 case ConsoleKey.D3:
                     Console.Clear();
                     Console.Write("Enter new secondary key: ");
-                    configManager.SecondaryKey = (VirtualKeyCode)Console.ReadKey().Key;
+                    configManager.SecondaryKey = (VirtualKeyCode)Console.ReadKey(true).Key;
                     DrawSettings();
                     break;
                 case ConsoleKey.D4:
                     Console.Clear();
                     Console.Write("Enter new hit window 100 key: ");
-                    configManager.HitWindow100Key = (VirtualKeyCode)Console.ReadKey().Key;
+                    configManager.HitWindow100Key = (VirtualKeyCode)Console.ReadKey(true).Key;
                     DrawSettings();
                     break;
                 case ConsoleKey.D5:
@@ -150,7 +150,7 @@ namespace osu_rx
                     Console.WriteLine("Use custom window title?\n");
                     Console.WriteLine("1. Yes");
                     Console.WriteLine("2. No");
-                    configManager.UseCustomWindowTitle = Console.ReadKey().Key == ConsoleKey.D1;
+                    configManager.UseCustomWindowTitle = Console.ReadKey(true).Key == ConsoleKey.D1;
                     if (configManager.UseCustomWindowTitle)
                     {
                         Console.Clear();
@@ -172,7 +172,7 @@ namespace osu_rx
                         Console.WriteLine("\n1. Yes");
                         Console.WriteLine("2. No");
 
-                        osuManager.UsingIPCFallback = Console.ReadKey().Key == ConsoleKey.D1;
+                        osuManager.UsingIPCFallback = Console.ReadKey(true).Key == ConsoleKey.D1;
                         DrawSettings();
                     }
                     else
@@ -251,7 +251,7 @@ namespace osu_rx
             Console.WriteLine("\nBut hey, you'll still be able to use osu!rx (in some way) even if i die and won't be able to update this piece of junk ;)");
             Console.WriteLine("\nPress ESC to return to the main menu.");
 
-            if (Console.ReadKey().Key == ConsoleKey.Escape)
+            if (Console.ReadKey(true).Key == ConsoleKey.Escape)
                 DrawMainMenu();
             else
                 DrawIPCFallbackInfo();
