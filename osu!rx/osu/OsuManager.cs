@@ -321,9 +321,9 @@ namespace osu_rx.osu
             fileSystemWatcher.IncludeSubdirectories = true;
 
             var lastModified = osuDatabase.Beatmaps.Max(b => b.LastModifiedTime);
-            foreach (var dir in new DirectoryInfo(SongsPath).EnumerateDirectories().OrderByDescending(d => d.LastWriteTime))
-                if (dir.LastWriteTime >= lastModified)
-                    dir.EnumerateFiles(".osu").ToList().ForEach(f => onNewBeatmapImport(f.FullName));
+            foreach (var dir in new DirectoryInfo(SongsPath).EnumerateDirectories().OrderByDescending(d => d.LastWriteTimeUtc))
+                if (dir.LastWriteTimeUtc >= lastModified)
+                    dir.EnumerateFiles("*.osu").ToList().ForEach(f => onNewBeatmapImport(f.FullName));
         }
 
         private void updateDatabase()
