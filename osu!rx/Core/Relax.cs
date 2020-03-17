@@ -6,6 +6,7 @@ using OsuParsers.Beatmaps;
 using OsuParsers.Beatmaps.Objects;
 using OsuParsers.Enums;
 using System;
+using System.Numerics;
 using System.Threading;
 using WindowsInput;
 using WindowsInput.Native;
@@ -23,6 +24,16 @@ namespace osu_rx.Core
 
         private VirtualKeyCode primaryKey;
         private VirtualKeyCode secondaryKey;
+
+        private bool hitScanEnabled;
+        private bool hitScanPredictionEnabled;
+        private float hitScanRadiusMultiplier;
+        private int hitScanMaxDistance;
+        private float hitScanRadiusAdditional;
+
+        private int hitWindow50;
+        private int hitWindow100;
+        private int hitWindow300;
 
         private float hitObjectRadius
         {
@@ -47,18 +58,27 @@ namespace osu_rx.Core
             primaryKey = configManager.PrimaryKey;
             secondaryKey = configManager.SecondaryKey;
 
+            hitScanEnabled = configManager.EnableHitScan;
+            hitScanPredictionEnabled = configManager.EnableHitScanPrediction;
+            hitScanRadiusMultiplier = configManager.HitScanRadiusMultiplier;
+            hitScanMaxDistance = configManager.HitScanMaxDistance;
+            hitScanRadiusAdditional = configManager.HitScanRadiusAdditional;
+
             var playStyle = configManager.PlayStyle;
             var hit100Key = configManager.HitWindow100Key;
             float audioRate = (osuManager.CurrentMods.HasFlag(Mods.DoubleTime) || osuManager.CurrentMods.HasFlag(Mods.Nightcore)) ? 1.5f : osuManager.CurrentMods.HasFlag(Mods.HalfTime) ? 0.75f : 1f;
             float maxBPM = configManager.MaxSingletapBPM / (audioRate / 2);
             int audioOffset = configManager.AudioOffset;
 
-            float hitWindow50 = osuManager.HitWindow50(currentBeatmap.DifficultySection.OverallDifficulty);
+            hitWindow50 = osuManager.HitWindow50(currentBeatmap.DifficultySection.OverallDifficulty);
+            hitWindow100 = osuManager.HitWindow100(currentBeatmap.DifficultySection.OverallDifficulty);
+            hitWindow300 = osuManager.HitWindow300(currentBeatmap.DifficultySection.OverallDifficulty);
 
-            int index, lastTime;
+            int index, lastTime, hitTime = 0;
             bool isHit, shouldStartAlternating, shouldAlternate;
             VirtualKeyCode currentKey;
             HitObject currentHitObject;
+            (int StartOffset, int HoldTime) currentHitTimings;
 
             reset();
 
@@ -85,33 +105,38 @@ namespace osu_rx.Core
                     continue;
                 }
 
-                if (!isHit && currentTime >= currentHitObject.StartTime)
+                if (currentTime >= currentHitObject.StartTime - hitWindow50)
                 {
-                    isHit = true;
+                    var hitScanResult = getHitScanResult(index);
+                    if (!isHit && ((currentTime >= currentHitObject.StartTime + currentHitTimings.StartOffset && hitScanResult == HitScanResult.CanHit) || hitScanResult == HitScanResult.ShouldHit))
+                    {
+                        isHit = true;
+                        hitTime = currentTime;
 
-                    if (playStyle == PlayStyles.MouseOnly)
-                    {
-                        if (currentKey == primaryKey)
+                        if (playStyle == PlayStyles.MouseOnly)
+                        {
+                            if (currentKey == primaryKey)
+                                inputSimulator.Mouse.LeftButtonDown();
+                            else
+                                inputSimulator.Mouse.RightButtonDown();
+                        }
+                        else if (playStyle == PlayStyles.TapX && !shouldAlternate && !shouldStartAlternating)
+                        {
                             inputSimulator.Mouse.LeftButtonDown();
+                            currentKey = primaryKey;
+                        }
                         else
-                            inputSimulator.Mouse.RightButtonDown();
+                            inputSimulator.Keyboard.KeyDown(currentKey);
                     }
-                    else if (playStyle == PlayStyles.TapX && !shouldAlternate && !shouldStartAlternating)
+                    else if (isHit && currentTime >= (currentHitObject is HitCircle ? hitTime : currentHitObject.EndTime) + currentHitTimings.HoldTime)
                     {
-                        inputSimulator.Mouse.LeftButtonDown();
-                        currentKey = primaryKey;
+                        isHit = false;
+                        moveToNextObject();
+                        releaseAllKeys();
                     }
-                    else
-                        inputSimulator.Keyboard.KeyDown(currentKey);
+                    else if (!isHit && hitScanResult == HitScanResult.Wait && currentTime >= (currentHitObject is HitCircle ? currentHitObject.StartTime : currentHitObject.EndTime + hitWindow50))
+                        moveToNextObject();
                 }
-                else if (isHit && currentTime >= currentHitObject.EndTime)
-                {
-                    isHit = false;
-                    moveToNextObject();
-                    releaseAllKeys();
-                }
-                //else if (currentTime >= currentBeatmap.HitObjects[index].EndTime + hitWindow50) //hitscan leftovers
-                //    moveToNextObject();
 
                 lastTime = currentTime;
             }
@@ -126,15 +151,19 @@ namespace osu_rx.Core
                 index = closestHitObjectIndex;
                 isHit = false;
                 currentKey = primaryKey;
+                currentHitObject = currentBeatmap.HitObjects[index];
                 updateAlternate();
-                currentHitObject = randomizeHitObjectTimings(currentBeatmap.HitObjects[index], shouldAlternate, false);
+                currentHitTimings = randomizeHitObjectTimings(index, shouldAlternate, false);
                 lastTime = -currentBeatmap.GeneralSection.AudioLeadIn;
             }
 
             void updateAlternate()
             {
-                shouldStartAlternating = index + 1 < currentBeatmap.HitObjects.Count ? 60000 / (currentBeatmap.HitObjects[index + 1].StartTime - currentBeatmap.HitObjects[index].EndTime) >= maxBPM : false;
-                shouldAlternate = index > 0 ? 60000 / (currentBeatmap.HitObjects[index].StartTime - currentBeatmap.HitObjects[index - 1].EndTime) >= maxBPM : false;
+                var lastHitObject = index > 0 ? currentBeatmap.HitObjects[index - 1] : null;
+                var nextHitObject = index + 1 < currentBeatmap.HitObjects.Count ? currentBeatmap.HitObjects[index + 1] : null;
+
+                shouldStartAlternating = nextHitObject != null ? 60000 / (nextHitObject.StartTime - currentHitObject.EndTime) >= maxBPM : false;
+                shouldAlternate = lastHitObject != null ? 60000 / (currentHitObject.StartTime - lastHitObject.EndTime) >= maxBPM : false;
                 if (shouldAlternate || playStyle == PlayStyles.Alternate)
                     currentKey = (currentKey == primaryKey) ? secondaryKey : primaryKey;
                 else
@@ -146,8 +175,9 @@ namespace osu_rx.Core
                 index++;
                 if (index < currentBeatmap.HitObjects.Count)
                 {
+                    currentHitObject = currentBeatmap.HitObjects[index];
                     updateAlternate();
-                    currentHitObject = randomizeHitObjectTimings(currentBeatmap.HitObjects[index], shouldAlternate, inputSimulator.InputDeviceState.IsKeyDown(hit100Key));
+                    currentHitTimings = randomizeHitObjectTimings(index, shouldAlternate, inputSimulator.InputDeviceState.IsKeyDown(hit100Key));
                 }
             }
         }
@@ -174,29 +204,70 @@ namespace osu_rx.Core
             }
         }
 
-        private HitObject randomizeHitObjectTimings(HitObject hitObject, bool alternating, bool allowHit100)
+        private int lastHitScanIndex;
+        private Vector2 lastOnNotePosition = Vector2.Zero;
+        private HitScanResult getHitScanResult(int index)
         {
-            var result = new HitObject(hitObject.Position, hitObject.StartTime, hitObject.EndTime, hitObject.HitSound, null, false, 0);
+            var hitObject = currentBeatmap.HitObjects[index];
 
-            int hitWindow300 = osuManager.HitWindow300(currentBeatmap.DifficultySection.OverallDifficulty);
-            int hitWindow100 = osuManager.HitWindow100(currentBeatmap.DifficultySection.OverallDifficulty);
+            if (!hitScanEnabled || hitObject is Spinner)
+                return HitScanResult.CanHit;
+
+            if (lastHitScanIndex != index)
+            {
+                lastHitScanIndex = index;
+                lastOnNotePosition = Vector2.Zero;
+            }
+
+            float distanceToObject = Vector2.Distance(osuManager.CursorPosition, hitObject.Position * osuManager.OsuWindow.PlayfieldRatio);
+            float distanceToLastPos = Vector2.Distance(osuManager.CursorPosition, lastOnNotePosition);
+
+            if (hitScanPredictionEnabled)
+            {
+                //checking if cursor is almost outside or outside of object's radius
+                if (distanceToObject > hitObjectRadius * hitScanRadiusMultiplier)
+                {
+                    if (lastOnNotePosition != Vector2.Zero && distanceToLastPos <= hitScanMaxDistance)
+                        return HitScanResult.ShouldHit; //force hit if cursor didn't traveled too much distance
+
+                    if (hitObject is Slider && osuManager.CurrentTime > hitObject.StartTime + hitWindow50)
+                        return HitScanResult.ShouldHit; //force hit if starttime has ended so we can at least sliderbreak
+
+                    if (distanceToObject <= hitObjectRadius + hitScanRadiusAdditional)
+                        return HitScanResult.CanHit; //telling relax that it can hit if cursor is somewhere near object's radius
+
+                    return HitScanResult.Wait;
+                }
+
+                lastOnNotePosition = osuManager.CursorPosition;
+                return HitScanResult.CanHit; //telling relax that it can hit if cursor is inside object's radius
+            }
+            else //use more simple algorithm if prediction is disabled
+            {
+                if (distanceToObject <= hitObjectRadius)
+                    return HitScanResult.CanHit;
+
+                return HitScanResult.Wait;
+            }
+        }
+
+        private (int StartOffset, int HoldTime) randomizeHitObjectTimings(int index, bool alternating, bool allowHit100)
+        {
+            (int StartOffset, int HoldTime) result;
 
             var random = new Random();
 
             float acc = alternating ? random.NextFloat(1.2f, 1.7f) : 2;
 
             if (allowHit100)
-                result.StartTime += random.Next(-hitWindow100 / 2, hitWindow100 / 2);
+                result.StartOffset = random.Next(-hitWindow100 / 2, hitWindow100 / 2);
             else
-                result.StartTime += random.Next((int)(-hitWindow300 / acc), (int)(hitWindow300 / acc));
+                result.StartOffset = random.Next((int)(-hitWindow300 / acc), (int)(hitWindow300 / acc));
 
             int circleHoldTime = random.Next(hitWindow300, hitWindow300 * 2);
             int sliderHoldTime = random.Next(-hitWindow300 / 2, hitWindow300 * 2);
 
-            if (hitObject is HitCircle)
-                result.EndTime = result.StartTime + circleHoldTime;
-            else if (hitObject is Slider)
-                result.EndTime += sliderHoldTime;
+            result.HoldTime = currentBeatmap.HitObjects[index] is HitCircle ? circleHoldTime : sliderHoldTime;
 
             return result;
         }

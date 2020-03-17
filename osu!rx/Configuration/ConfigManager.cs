@@ -54,6 +54,37 @@ namespace osu_rx.Configuration
             set => config.SetValue<string>("CustomWindowTitle", value);
         }
 
+        public bool EnableHitScan
+        {
+            get => config.ReadValue<bool>("EnableHitScan", true);
+            set => config.SetValue<bool>("EnableHitScan", value);
+        }
+
+        //TODO: expose those in next update through settings if nothing changes
+        public bool EnableHitScanPrediction
+        {
+            get => config.ReadValue<bool>("H_EnablePrediction", true);
+            set => config.SetValue<bool>("H_EnablePrediction", value);
+        }
+
+        public float HitScanRadiusMultiplier
+        {
+            get => config.ReadValue<float>("H_RadiusMultiplier", 0.9f);
+            set => config.SetValue<float>("H_RadiusMultiplier", value);
+        }
+
+        public int HitScanRadiusAdditional
+        {
+            get => config.ReadValue<int>("H_RadiusAdditional", 50);
+            set => config.SetValue<int>("H_RadiusAdditional", value);
+        }
+
+        public int HitScanMaxDistance
+        {
+            get => config.ReadValue<int>("H_MaxDistance", 30);
+            set => config.SetValue<int>("H_MaxDistance", value);
+        }
+
         public ConfigManager() => config = new SimpleIniConfig();
     }
 

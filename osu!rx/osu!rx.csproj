@@ -57,6 +57,7 @@
     <Compile Include="Configuration\ConfigManager.cs" />
     <Compile Include="Configuration\Setting.cs" />
     <Compile Include="Configuration\SimpleIniConfig.cs" />
+    <Compile Include="Core\HitScanResult.cs" />
     <Compile Include="Core\Relax.cs" />
     <Compile Include="Dependencies\DependencyContainer.cs" />
     <Compile Include="Helpers\Constants.cs" />
