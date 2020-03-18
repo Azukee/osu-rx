@@ -278,18 +278,17 @@ namespace osu_rx.osu
                 cursorPositionYAddress = cursorPositionXAddress + Constants.CursorPositionYOffset;
 
             }
-            catch (Exception ex)
+            catch { }
+            finally
             {
-                Console.WriteLine($"\nAn error occured (please report this): {ex.ToString()}");
-                Thread.Sleep(3000);
-            }
-
-            if (audioTimeAddress == IntPtr.Zero || isAudioPlayingAddress == IntPtr.Zero
-                || gameStateAddress == IntPtr.Zero || modsAddress == IntPtr.Zero || replayModeAddress == IntPtr.Zero
-                || cursorPositionXAddress == IntPtr.Zero || cursorPositionYAddress == IntPtr.Zero)
-            {
-                Console.WriteLine("\nScanning failed! Using IPC fallback...");
-                UsingIPCFallback = true;
+                if (audioTimeAddress == IntPtr.Zero || isAudioPlayingAddress == IntPtr.Zero
+                    || gameStateAddress == IntPtr.Zero || modsAddress == IntPtr.Zero || replayModeAddress == IntPtr.Zero
+                    || cursorPositionXAddress == IntPtr.Zero || cursorPositionYAddress == IntPtr.Zero)
+                {
+                    Console.WriteLine("\nScanning failed! Using IPC fallback...");
+                    UsingIPCFallback = true;
+                    Thread.Sleep(3000);
+                }
             }
         }
 

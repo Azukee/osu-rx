@@ -249,6 +249,9 @@ namespace osu_rx
             Console.WriteLine("4. Hitscan will only work with raw input turned off.");
             Console.WriteLine("5. And you'll probably experience a bunch of other unknown issues.");
             Console.WriteLine("\nBut hey, you'll still be able to use osu!rx (in some way) even if i die and won't be able to update this piece of junk ;)");
+            Console.WriteLine("\n---How to get rid of this?---");
+            Console.WriteLine("\n- Try restarting osu! and osu!rx multiple times.");
+            Console.WriteLine("- If the advice above didn't helped, then report this on github/mpgh and i'll try to fix this ASAP!");
             Console.WriteLine("\nPress ESC to return to the main menu.");
 
             if (Console.ReadKey(true).Key == ConsoleKey.Escape)
