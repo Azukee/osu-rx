@@ -260,7 +260,7 @@ namespace osu_rx.osu
                 Console.Write('.');
                 modsAddress = (IntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Constants.ModsPattern) + Constants.ModsOffset);
 
-                Console.Write('.');
+                Console.WriteLine('.');
                 replayModeAddress = (IntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Constants.ReplayModePattern) + Constants.ReplayModeOffset);
 
             }

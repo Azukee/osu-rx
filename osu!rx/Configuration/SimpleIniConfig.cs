@@ -57,8 +57,7 @@ namespace osu_rx.Configuration
             }
             else //creating new config key
             {
-                localConfig.Add(new Setting(key, defaultValue.ToString()));
-                SaveConfig(); //temporary workaround until i figure out a better way of saving config on exit
+                SetValue(key, defaultValue);
                 return defaultValue;
             }
         }
@@ -75,12 +74,25 @@ namespace osu_rx.Configuration
 
         public void SetValue<T>(string key, T newValue)
         {
+            string value = Format(newValue);
             int settingIndex = localConfig.FindIndex(s => s.Name == key);
             if (settingIndex != -1)
-                localConfig[settingIndex].RawValue = newValue.ToString();
+                localConfig[settingIndex].RawValue = value;
             else //creating new config key
-                localConfig.Add(new Setting(key, newValue.ToString()));
+                localConfig.Add(new Setting(key, value));
             SaveConfig(); //temporary shit until i figure out a better way
+        }
+
+        private string Format<T>(T value) //TODO: figure out something better, and probably even rewrite this stuff
+        {
+            switch (Type.GetTypeCode(typeof(T)))
+            {
+                case TypeCode.Single:
+                case TypeCode.Double:
+                    return value.ToString().Replace(',', '.');
+                default:
+                    return value.ToString();
+            }
         }
 
         public void LoadConfig()
