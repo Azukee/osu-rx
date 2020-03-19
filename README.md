@@ -30,6 +30,8 @@ Hit Timing randomization and HitScan need improvements and your feedback. Take a
 | [Latest GitHub release](https://github.com/mrflashstudio/osu-rx/releases/latest) | [MPGH (every build is approved by forum admin)](https://www.mpgh.net/forum/showthread.php?t=1488076) |
 |-----------------------|-----------------------------------------------|  
 
+*Paranoids can compile source code themselves ;)*
+
 - Extract downloaded archive into any folder.
 - Launch osu!, then run osu!rx.exe
 - Change any setting you want.
