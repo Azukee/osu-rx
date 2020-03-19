@@ -52,6 +52,9 @@ Hit Timing randomization and HitScan need improvements and your feedback. Take a
   - Click "Apply" and repeat all steps described in **Running osu!rx** section.
    ![s](https://i.ibb.co/jZY8fk0/image.png)
 
+### Detection state
+At this moment osu!rx is undetected and its detection state is constantly tracked by me and other users.
+
 ### Demonstation video
 ***osu!rx does not affect performance. In this case lags were caused by obs and cute girls in the background.***
 [![Video](https://i.ibb.co/grQSzMP/screenshot065.png)](https://www.youtube.com/watch?v=1FUxnGqjASQ)
