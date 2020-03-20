@@ -14,5 +14,9 @@
 
         public const string ReplayModePattern = "85 C0 75 0D 80 3D";
         public const int ReplayModeOffset = 6;
+
+        public const string CursorPositionXPattern = "04 00 00 00 00 00 00 00 ?? ?? ?? ?? 00 00 00 00 00 00 00 00 54 F4";
+        public const int CursorPositionXOffset = -172;
+        public const int CursorPositionYOffset = 4;
     }
 }

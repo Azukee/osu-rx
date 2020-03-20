@@ -251,7 +251,8 @@ namespace osu_rx
             Console.WriteLine("\n1. You will experience timing issues if your game is running below 200 fps.");
             Console.WriteLine("2. You will probably be missing a lot if your game lags/stutters.");
             Console.WriteLine("3. Mods support will no longer work.\n   That means you won't be able to play hd/ez mods with hitscan and your max singletap bpm won't scale with dt/ht mods.");
-            Console.WriteLine("4. And you'll probably experience a bunch of other unknown issues.");
+            Console.WriteLine("4. Hitscan may not work if you have raw input turned on.");
+            Console.WriteLine("5. And you'll probably experience a bunch of other unknown issues.");
             Console.WriteLine("\nBut hey, you'll still be able to use osu!rx (in some way) even if i die and won't be able to update this piece of junk ;)");
             Console.WriteLine("\n---How to get rid of this?---");
             Console.WriteLine("\n- Try restarting osu! and osu!rx multiple times.");
