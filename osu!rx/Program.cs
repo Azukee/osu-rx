@@ -213,7 +213,7 @@ namespace osu_rx
                 while (osuManager.CurrentState != OsuStates.Play && !shouldExit)
                     Thread.Sleep(5);
 
-                if (osuManager.CurrentState == OsuStates.Play && osuManager.CursorPosition == -osuManager.OsuWindow.PlayfieldPosition)
+                if (osuManager.CurrentState == OsuStates.Play && osuManager.CursorPosition == -osuManager.OsuWindow.PlayfieldPosition && !osuManager.UsingIPCFallback)
                     osuManager.ScanForCursorPosition();
 
                 while (!osuManager.CanPlay && !shouldExit)
