@@ -273,11 +273,8 @@ namespace osu_rx.osu
                 Console.Write('.');
                 replayModeAddress = (IntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Constants.ReplayModePattern) + Constants.ReplayModeOffset);
 
-                //TODO: may sometimes fail silently
                 Console.WriteLine('.');
-                cursorPositionXAddress = OsuProcess.FindPattern(Constants.CursorPositionXPattern) + Constants.CursorPositionXOffset;
-                cursorPositionYAddress = cursorPositionXAddress + Constants.CursorPositionYOffset;
-
+                ScanForCursorPosition();
             }
             catch { }
             finally
@@ -291,6 +288,13 @@ namespace osu_rx.osu
                     Thread.Sleep(3000);
                 }
             }
+        }
+
+        //TODO: hax
+        public void ScanForCursorPosition()
+        {
+            cursorPositionXAddress = OsuProcess.FindPattern(Constants.CursorPositionXPattern) + Constants.CursorPositionXOffset;
+            cursorPositionYAddress = cursorPositionXAddress + Constants.CursorPositionYOffset;
         }
 
         private void connectToIPC()
