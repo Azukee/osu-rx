@@ -159,14 +159,6 @@ namespace osu_rx.osu
         {
             get
             {
-                if (!UsingIPCFallback)
-                {
-                    float x = OsuProcess.ReadFloat(cursorPositionXAddress);
-                    float y = OsuProcess.ReadFloat(cursorPositionYAddress);
-
-                    return new Vector2(x, y) - OsuWindow.PlayfieldPosition;
-                }
-
                 GetCursorPos(out var pos);
                 return pos.ToVector2() - (OsuWindow.WindowPosition + OsuWindow.PlayfieldPosition);
             }
@@ -270,11 +262,8 @@ namespace osu_rx.osu
                 Console.Write('.');
                 modsAddress = (IntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Constants.ModsPattern) + Constants.ModsOffset);
 
-                Console.Write('.');
-                replayModeAddress = (IntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Constants.ReplayModePattern) + Constants.ReplayModeOffset);
-
                 Console.WriteLine('.');
-                ScanForCursorPosition();
+                replayModeAddress = (IntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Constants.ReplayModePattern) + Constants.ReplayModeOffset);
             }
             catch { }
             finally
@@ -288,13 +277,6 @@ namespace osu_rx.osu
                     Thread.Sleep(3000);
                 }
             }
-        }
-
-        //TODO: hax
-        public void ScanForCursorPosition()
-        {
-            cursorPositionXAddress = OsuProcess.FindPattern(Constants.CursorPositionXPattern) + Constants.CursorPositionXOffset;
-            cursorPositionYAddress = cursorPositionXAddress + Constants.CursorPositionYOffset;
         }
 
         private void connectToIPC()

@@ -209,13 +209,6 @@ namespace osu_rx
                 Console.WriteLine("Idling");
                 Console.WriteLine("\nPress ESC to return to the main menu.");
 
-                //TODO: hax
-                while (osuManager.CurrentState != OsuStates.Play && !shouldExit)
-                    Thread.Sleep(5);
-
-                if (osuManager.CurrentState == OsuStates.Play && osuManager.CursorPosition == -osuManager.OsuWindow.PlayfieldPosition && !osuManager.UsingIPCFallback)
-                    osuManager.ScanForCursorPosition();
-
                 while (!osuManager.CanPlay && !shouldExit)
                     Thread.Sleep(5);
 
