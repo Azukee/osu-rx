@@ -27,8 +27,8 @@ Hit Timing randomization and HitScan need improvements and your feedback. Take a
 
 ## Running osu!rx
 **Download latest build from one of the sources below:**  
-| [Latest GitHub release](https://github.com/mrflashstudio/osu-rx/releases/latest) | [MPGH (every build is approved by forum admin)](https://www.mpgh.net/forum/showthread.php?t=1488076) |
-|-----------------------|-----------------------------------------------|  
+| [MPGH (every build is approved by forum admin)](https://www.mpgh.net/forum/showthread.php?t=1488076) | Github releases will be available soon! |
+|-----------------------------------------------|-----------|  
 
 *Paranoids can compile source code themselves ;)*
 
