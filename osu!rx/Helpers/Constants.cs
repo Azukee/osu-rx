@@ -14,5 +14,9 @@
 
         public const string ReplayModePattern = "85 C0 75 0D 80 3D";
         public const int ReplayModeOffset = 6;
+
+        public static readonly int[] CursorPositionXOffsetChain = new int[]{ -2452, 8, 28, 16, 432, 380, 8, 476, 20, 304, 124 };
+        public const int CursorPositionXOffset = 4;
+        public const int CursorPositionYOffset = 8;
     }
 }
