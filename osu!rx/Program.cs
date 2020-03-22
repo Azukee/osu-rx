@@ -197,7 +197,7 @@ namespace osu_rx
             bool shouldExit = false;
             Task.Run(() =>
             {
-                while (!(Console.KeyAvailable && Console.ReadKey(true).Key == ConsoleKey.Escape)) ;
+                while (Console.ReadKey(true).Key != ConsoleKey.Escape) ;
 
                 shouldExit = true;
                 relax.Stop();
@@ -224,9 +224,12 @@ namespace osu_rx
                     else
                         Console.WriteLine("Only osu!standard beatmaps are supported!\n\nReturn to song select to continue or press ESC to return to main menu.");
 
-                    while (osuManager.CanPlay && !shouldExit) ;
+                    while (osuManager.CanPlay && !shouldExit)
+                        Thread.Sleep(1);
+
                     if (shouldExit)
                         break;
+
                     continue;
                 }
 
