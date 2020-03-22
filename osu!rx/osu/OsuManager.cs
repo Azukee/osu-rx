@@ -27,7 +27,6 @@ namespace osu_rx.osu
         private IntPtr gameStateAddress;
         private IntPtr modsAddress;
         private IntPtr replayModeAddress;
-        private IntPtr cursorPositionAddress;
 
         private object interProcessOsu;
         private MethodInfo bulkClientDataMethod;
@@ -161,6 +160,10 @@ namespace osu_rx.osu
             {
                 if (!UsingIPCFallback)
                 {
+                    IntPtr cursorPositionAddress = threadStack0Address;
+                    foreach (var offset in Constants.CursorPositionXOffsetChain)
+                        cursorPositionAddress = (IntPtr)OsuProcess.ReadInt32(cursorPositionAddress + offset);
+
                     int x = OsuProcess.ReadInt32(cursorPositionAddress + Constants.CursorPositionXOffset);
                     int y = OsuProcess.ReadInt32(cursorPositionAddress + Constants.CursorPositionYOffset);
 
@@ -273,20 +276,15 @@ namespace osu_rx.osu
                 Console.Write('.');
                 modsAddress = (IntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Constants.ModsPattern) + Constants.ModsOffset);
 
-                Console.Write('.');
-                replayModeAddress = (IntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Constants.ReplayModePattern) + Constants.ReplayModeOffset);
-
                 Console.WriteLine('.');
-                cursorPositionAddress = threadStack0Address;
-                foreach (var offset in Constants.CursorPositionXOffsetChain)
-                    cursorPositionAddress = (IntPtr)OsuProcess.ReadInt32(cursorPositionAddress + offset);
+                replayModeAddress = (IntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Constants.ReplayModePattern) + Constants.ReplayModeOffset);
             }
             catch { }
             finally
             {
-                if (audioTimeAddress == IntPtr.Zero || isAudioPlayingAddress == IntPtr.Zero
-                    || gameStateAddress == IntPtr.Zero || modsAddress == IntPtr.Zero || replayModeAddress == IntPtr.Zero
-                    || cursorPositionAddress == IntPtr.Zero)
+                if (threadStack0Address == IntPtr.Zero || audioTimeAddress == IntPtr.Zero
+                    || isAudioPlayingAddress == IntPtr.Zero || gameStateAddress == IntPtr.Zero
+                    || modsAddress == IntPtr.Zero || replayModeAddress == IntPtr.Zero)
                 {
                     Console.WriteLine("\nScanning failed! Using IPC fallback...");
                     UsingIPCFallback = true;
