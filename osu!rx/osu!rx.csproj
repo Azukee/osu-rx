@@ -36,6 +36,9 @@
     <Reference Include="OsuParsers, Version=1.6.5.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\OsuParsers.1.6.5\lib\netstandard2.0\OsuParsers.dll</HintPath>
     </Reference>
+    <Reference Include="SimpleIniConfig, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\SimpleIniConfig.1.0.0\lib\netstandard2.0\SimpleIniConfig.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Drawing" />
@@ -55,8 +58,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Configuration\ConfigManager.cs" />
-    <Compile Include="Configuration\Setting.cs" />
-    <Compile Include="Configuration\SimpleIniConfig.cs" />
     <Compile Include="Core\HitScanResult.cs" />
     <Compile Include="Core\Relax.cs" />
     <Compile Include="Dependencies\DependencyContainer.cs" />
