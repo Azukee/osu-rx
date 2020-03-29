@@ -219,7 +219,14 @@ namespace osu_rx.Core
                 lastOnNotePosition = Vector2.Zero;
             }
 
-            float distanceToObject = Vector2.Distance(osuManager.CursorPosition, hitObject.Position * osuManager.OsuWindow.PlayfieldRatio);
+            Vector2 hitObjectPosition()
+            {
+                float y = osuManager.CurrentMods.HasFlag(Mods.HardRock) ? 384 - hitObject.Position.Y : hitObject.Position.Y;
+
+                return new Vector2(hitObject.Position.X, y);
+            }
+
+            float distanceToObject = Vector2.Distance(osuManager.CursorPosition, hitObjectPosition() * osuManager.OsuWindow.PlayfieldRatio);
             float distanceToLastPos = Vector2.Distance(osuManager.CursorPosition, lastOnNotePosition);
 
             if (hitScanPredictionEnabled)
