@@ -149,6 +149,11 @@ namespace osu_rx.osu
             }
         }
 
+        public bool CanLoad
+        {
+            get => CurrentState == OsuStates.Play && !IsInReplayMode;
+        }
+
         public bool CanPlay
         {
             get => CurrentState == OsuStates.Play && IsPlayerLoaded && !IsInReplayMode;
