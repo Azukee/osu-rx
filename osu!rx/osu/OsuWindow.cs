@@ -8,10 +8,18 @@ namespace osu_rx.osu
     public class OsuWindow
     {
         [DllImport("user32.dll")]
-        private static extern bool GetClientRect(IntPtr hwnd, out Rectangle rectangle);
+        private static extern bool GetClientRect(IntPtr hwnd, out Rect rectangle);
 
         [DllImport("user32.dll")]
         private static extern bool ClientToScreen(IntPtr hwnd, out Point point);
+
+        private struct Rect
+        {
+            public int Left { get; set; }
+            public int Top { get; set; }
+            public int Right { get; set; }
+            public int Bottom { get; set; }
+        }
 
         private IntPtr windowHandle;
 
@@ -20,7 +28,7 @@ namespace osu_rx.osu
             get
             {
                 GetClientRect(windowHandle, out var osuRectangle);
-                return new Vector2(osuRectangle.Width, osuRectangle.Height);
+                return new Vector2(osuRectangle.Right, osuRectangle.Bottom);
             }
         }
 
