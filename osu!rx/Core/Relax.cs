@@ -26,11 +26,12 @@ namespace osu_rx.Core
         private VirtualKeyCode secondaryKey;
 
         private bool hitScanEnabled;
+        private bool holdBeforeSpinnerEnabled;
         private bool hitScanPredictionEnabled;
         private float hitScanRadiusMultiplier;
         private int hitScanMaxDistance;
         private float hitScanRadiusAdditional;
-
+        
         private int hitWindow50;
         private int hitWindow100;
         private int hitWindow300;
@@ -59,6 +60,7 @@ namespace osu_rx.Core
             secondaryKey = configManager.SecondaryKey;
 
             hitScanEnabled = configManager.EnableHitScan;
+            holdBeforeSpinnerEnabled = configManager.HoldBeforeSpinner;
             hitScanPredictionEnabled = configManager.EnableHitScanPrediction;
             hitScanRadiusMultiplier = configManager.HitScanRadiusMultiplier;
             hitScanMaxDistance = configManager.HitScanMaxDistance;
@@ -176,6 +178,17 @@ namespace osu_rx.Core
                 if (index < currentBeatmap.HitObjects.Count)
                 {
                     currentHitObject = currentBeatmap.HitObjects[index];
+                    var nextHitObject = index + 1 < currentBeatmap.HitObjects.Count ? currentBeatmap.HitObjects[index + 1] : null;
+                    
+                    // Check if next object is a spinner, if so, hold!
+                    if (nextHitObject is Spinner && holdBeforeSpinnerEnabled) {
+                        nextHitObject.StartTime = currentHitObject.StartTime;
+                        currentHitObject = nextHitObject;
+                        
+                        // This is to prevent a DivisionByZero Exception at LOC:166
+                        currentBeatmap.HitObjects.RemoveAt(index + 1);
+                    }
+                    
                     updateAlternate();
                     currentHitTimings = randomizeHitObjectTimings(index, shouldAlternate, inputSimulator.InputDeviceState.IsKeyDown(hit100Key));
                 }
@@ -273,6 +286,12 @@ namespace osu_rx.Core
 
             int circleHoldTime = random.Next(hitWindow300, hitWindow300 * 2);
             int sliderHoldTime = random.Next(-hitWindow300 / 2, hitWindow300 * 2);
+
+            /*if (currentBeatmap.HitObjects[index] is Slider currObj) {
+                // is kick/short slider?
+                int duration = currObj.EndTime - currObj.StartTime;
+                Console.WriteLine($"[{index}] {duration} - {sliderHoldTime}");
+            }*/
 
             result.HoldTime = currentBeatmap.HitObjects[index] is HitCircle ? circleHoldTime : sliderHoldTime;
 
