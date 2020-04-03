@@ -181,7 +181,8 @@ namespace osu_rx.Core
                     var nextHitObject = index + 1 < currentBeatmap.HitObjects.Count ? currentBeatmap.HitObjects[index + 1] : null;
                     
                     // Check if next object is a spinner, if so, hold!
-                    if (nextHitObject is Spinner && holdBeforeSpinnerEnabled) {
+                    if (nextHitObject is Spinner && holdBeforeSpinnerEnabled)
+                    {
                         nextHitObject.StartTime = currentHitObject.StartTime;
                         currentHitObject = nextHitObject;
                         
@@ -286,12 +287,6 @@ namespace osu_rx.Core
 
             int circleHoldTime = random.Next(hitWindow300, hitWindow300 * 2);
             int sliderHoldTime = random.Next(-hitWindow300 / 2, hitWindow300 * 2);
-
-            /*if (currentBeatmap.HitObjects[index] is Slider currObj) {
-                // is kick/short slider?
-                int duration = currObj.EndTime - currObj.StartTime;
-                Console.WriteLine($"[{index}] {duration} - {sliderHoldTime}");
-            }*/
 
             result.HoldTime = currentBeatmap.HitObjects[index] is HitCircle ? circleHoldTime : sliderHoldTime;
 
