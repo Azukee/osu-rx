@@ -90,9 +90,10 @@ namespace osu_rx
             Console.WriteLine($"6. Audio offset         | [{configManager.AudioOffset}]");
             Console.WriteLine($"7. Custom window title  | [{(configManager.UseCustomWindowTitle ? $"ON | {configManager.CustomWindowTitle}" : "OFF")}]");
             Console.WriteLine($"8. Hitscan              | [{(configManager.EnableHitScan ? "ENABLED" : "DISABLED")}]");
+            Console.WriteLine($"9. Hold before Spinner  | [{(configManager.HoldBeforeSpinner ? "ENABLED" : "DISABLED")}]");;
 
             if (!osuManager.UsingIPCFallback)
-                Console.WriteLine("\n9. Turn on IPC Fallback mode");
+                Console.WriteLine("\n0. Turn on IPC Fallback mode");
 
             Console.WriteLine("\nESC. Back to main menu");
 
@@ -168,6 +169,10 @@ namespace osu_rx
                     DrawSettings();
                     break;
                 case ConsoleKey.D9:
+                    configManager.HoldBeforeSpinner = !configManager.HoldBeforeSpinner;
+                    DrawSettings();
+                    break;
+                case ConsoleKey.D0:
                     if (!osuManager.UsingIPCFallback)
                     {
                         Console.Clear();
