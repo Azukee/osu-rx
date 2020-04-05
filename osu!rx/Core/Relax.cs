@@ -34,10 +34,10 @@ namespace osu_rx.Core
         private float hitScanRadiusMultiplier;
         private int hitScanMaxDistance;
         private float hitScanRadiusAdditional;
-        
+
         // Keep a list of HitObjects to modify
         private List<HitObject> hitObjects = new List<HitObject>();
-        
+
         private int hitWindow50;
         private int hitWindow100;
         private int hitWindow300;
@@ -122,7 +122,8 @@ namespace osu_rx.Core
                         isHit = true;
                         hitTime = currentTime;
 
-                        switch (playStyle) {
+                        switch (playStyle)
+                        {
                             case PlayStyles.MouseOnly when currentKey == primaryKey:
                                 inputSimulator.Mouse.LeftButtonDown();
                                 break;
@@ -146,7 +147,6 @@ namespace osu_rx.Core
                     }
                     else if (!isHit && hitScanResult == HitScanResult.Wait && currentTime >= (currentHitObject is HitCircle ? currentHitObject.StartTime : currentHitObject.EndTime + hitWindow50))
                         moveToNextObject();
-                    
                 }
 
                 lastTime = currentTime;
@@ -192,7 +192,8 @@ namespace osu_rx.Core
                     var nextHitObject = index + 1 < hitObjects.Count ? hitObjects[index + 1] : null;
 
                     // Check if next object is a spinner, if so, hold!
-                    if (nextHitObject is Spinner && holdBeforeSpinnerEnabled) {
+                    if (nextHitObject is Spinner && holdBeforeSpinnerEnabled)
+                    {
                         nextHitObject.StartTime = currentHitObject.StartTime;
                         currentHitObject = nextHitObject;
 
