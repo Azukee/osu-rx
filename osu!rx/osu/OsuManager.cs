@@ -1,4 +1,7 @@
-﻿using osu_rx.Helpers;
+﻿using osu_rx.Dependencies;
+using osu_rx.Helpers;
+using osu_rx.osu.Memory;
+using osu_rx.osu.Memory.Objects;
 using OsuParsers.Beatmaps;
 using OsuParsers.Database;
 using OsuParsers.Decoders;
@@ -22,11 +25,10 @@ namespace osu_rx.osu
         private static extern bool GetCursorPos(out Point point);
 
         private IntPtr threadStack0Address;
-        private IntPtr audioTimeAddress;
-        private IntPtr isAudioPlayingAddress;
-        private IntPtr gameStateAddress;
         private IntPtr modsAddress;
-        private IntPtr replayModeAddress;
+
+        private OsuGameBase osuGameBase;
+        private OsuConfigManager osuConfigManager;
 
         private object interProcessOsu;
         private MethodInfo bulkClientDataMethod;
@@ -46,7 +48,7 @@ namespace osu_rx.osu
             get
             {
                 if (!UsingIPCFallback)
-                    return OsuProcess.ReadInt32(audioTimeAddress);
+                    return osuGameBase.Time;
 
                 var data = bulkClientDataMethod.Invoke(interProcessOsu, null);
                 return (int)data.GetType().GetField("MenuTime").GetValue(data);
@@ -69,7 +71,7 @@ namespace osu_rx.osu
             get
             {
                 if (!UsingIPCFallback)
-                    return !OsuProcess.ReadBool(isAudioPlayingAddress);
+                    return !osuGameBase.IsAudioPlaying;
 
                 var data = bulkClientDataMethod.Invoke(interProcessOsu, null);
                 return !(bool)data.GetType().GetField("AudioPlaying").GetValue(data);
@@ -97,7 +99,7 @@ namespace osu_rx.osu
             get
             {
                 if (!UsingIPCFallback)
-                    return OsuProcess.ReadBool(replayModeAddress);
+                    return osuGameBase.ReplayMode;
 
                 var data = bulkClientDataMethod.Invoke(interProcessOsu, null);
                 return (bool)data.GetType().GetField("LReplayMode").GetValue(data);
@@ -142,7 +144,7 @@ namespace osu_rx.osu
             get
             {
                 if (!UsingIPCFallback)
-                    return (OsuStates)OsuProcess.ReadInt32(gameStateAddress);
+                    return osuGameBase.State;
 
                 var data = bulkClientDataMethod.Invoke(interProcessOsu, null);
                 return (OsuStates)data.GetType().GetField("Mode").GetValue(data);
@@ -166,11 +168,11 @@ namespace osu_rx.osu
                 if (!UsingIPCFallback)
                 {
                     IntPtr cursorPositionAddress = threadStack0Address;
-                    foreach (var offset in Constants.CursorPositionXOffsetChain)
+                    foreach (var offset in Signatures.CursorPositionXOffsetChain)
                         cursorPositionAddress = (IntPtr)OsuProcess.ReadInt32(cursorPositionAddress + offset);
 
-                    int x = OsuProcess.ReadInt32(cursorPositionAddress + Constants.CursorPositionXOffset);
-                    int y = OsuProcess.ReadInt32(cursorPositionAddress + Constants.CursorPositionYOffset);
+                    int x = OsuProcess.ReadInt32(cursorPositionAddress + Signatures.CursorPositionXOffset);
+                    int y = OsuProcess.ReadInt32(cursorPositionAddress + Signatures.CursorPositionYOffset);
 
                     return new Vector2(x, y) - OsuWindow.PlayfieldPosition;
                 }
@@ -226,6 +228,7 @@ namespace osu_rx.osu
             osuProcess.EnableRaisingEvents = true;
             osuProcess.Exited += (o, e) => Environment.Exit(0);
             OsuProcess = new OsuProcess(osuProcess);
+            DependencyContainer.Cache(OsuProcess);
 
             OsuWindow = new OsuWindow(osuProcess.MainWindowHandle);
 
@@ -268,28 +271,22 @@ namespace osu_rx.osu
         {
             try
             {
-                Console.Write("\nScanning for memory addresses.");
+                Console.WriteLine("\nScanning for memory addresses...");
 
                 threadStack0Address = OsuProcess.GetThreadStack0Address();
 
-                audioTimeAddress = (IntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Constants.AudioTimePattern) + Constants.AudioTimeOffset);
-                isAudioPlayingAddress = audioTimeAddress + Constants.IsAudioPlayingOffset;
+                IntPtr osuGameBaseAddress = (IntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Signatures.GameBase.Pattern) + Signatures.GameBase.Offset);
+                IntPtr osuConfigManagerAddress = (IntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Signatures.ConfigManager.Pattern) + Signatures.ConfigManager.Offset);
+                modsAddress = (IntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Signatures.Mods.Pattern) + Signatures.Mods.Offset);
 
-                Console.Write('.');
-                gameStateAddress = (IntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Constants.GameStatePattern) + Constants.GameStateOffset);
-
-                Console.Write('.');
-                modsAddress = (IntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Constants.ModsPattern) + Constants.ModsOffset);
-
-                Console.WriteLine('.');
-                replayModeAddress = (IntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Constants.ReplayModePattern) + Constants.ReplayModeOffset);
+                osuGameBase = new OsuGameBase(osuGameBaseAddress);
+                osuConfigManager = new OsuConfigManager(osuConfigManagerAddress);
             }
             catch { }
             finally
             {
-                if (threadStack0Address == IntPtr.Zero || audioTimeAddress == IntPtr.Zero
-                    || isAudioPlayingAddress == IntPtr.Zero || gameStateAddress == IntPtr.Zero
-                    || modsAddress == IntPtr.Zero || replayModeAddress == IntPtr.Zero)
+                if (threadStack0Address == IntPtr.Zero || modsAddress == IntPtr.Zero || osuGameBase == null
+                    || osuConfigManager == null || osuGameBase.BaseAddress == IntPtr.Zero || osuConfigManager.BaseAddress == IntPtr.Zero)
                 {
                     Console.WriteLine("\nScanning failed! Using IPC fallback...");
                     UsingIPCFallback = true;

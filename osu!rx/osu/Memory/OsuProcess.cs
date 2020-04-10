@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 
-namespace osu_rx.osu
+namespace osu_rx.osu.Memory
 {
     public class OsuProcess
     {
