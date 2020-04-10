@@ -82,20 +82,45 @@ namespace osu_rx
         {
             Console.Clear();
             Console.WriteLine("---Settings---\n");
-            Console.WriteLine($"1. Playstyle            | [{configManager.PlayStyle}]");
-            Console.WriteLine($"2. Primary key          | [{configManager.PrimaryKey}]");
-            Console.WriteLine($"3. Secondary key        | [{configManager.SecondaryKey}]");
-            Console.WriteLine($"4. Hit window 100 key   | [{configManager.HitWindow100Key}]");
-            Console.WriteLine($"5. Max singletap BPM    | [{configManager.MaxSingletapBPM}]");
-            Console.WriteLine($"6. Audio offset         | [{configManager.AudioOffset}]");
-            Console.WriteLine($"7. Custom window title  | [{(configManager.UseCustomWindowTitle ? $"ON | {configManager.CustomWindowTitle}" : "OFF")}]");
-            Console.WriteLine($"8. Hitscan              | [{(configManager.EnableHitScan ? "ENABLED" : "DISABLED")}]");
-            Console.WriteLine($"9. Hold before Spinner  | [{(configManager.HoldBeforeSpinner ? "ENABLED" : "DISABLED")}]");;
-
-            if (!osuManager.UsingIPCFallback)
-                Console.WriteLine("\n0. Turn on IPC Fallback mode");
+            Console.WriteLine("1. Relax settings");
+            Console.WriteLine("2. HitScan settings");
+            Console.WriteLine("3. Other settings");
 
             Console.WriteLine("\nESC. Back to main menu");
+
+            switch (Console.ReadKey(true).Key)
+            {
+                case ConsoleKey.D1:
+                    DrawRelaxSettings();
+                    break;
+                case ConsoleKey.D2:
+                    DrawHitScanSettings();
+                    break;
+                case ConsoleKey.D3:
+                    DrawOtherSettings();
+                    break;
+                case ConsoleKey.Escape:
+                    DrawMainMenu();
+                    break;
+                default:
+                    DrawSettings();
+                    break;
+            }
+        }
+
+        private static void DrawRelaxSettings()
+        {
+            Console.Clear();
+            Console.WriteLine("---Relax Settings---\n");
+            Console.WriteLine($"1. Playstyle           | [{configManager.PlayStyle}]");
+            Console.WriteLine($"2. Primary key         | [{configManager.PrimaryKey}]");
+            Console.WriteLine($"3. Secondary key       | [{configManager.SecondaryKey}]");
+            Console.WriteLine($"4. Hit window 100 key  | [{configManager.HitWindow100Key}]");
+            Console.WriteLine($"5. Max singletap BPM   | [{configManager.MaxSingletapBPM}]");
+            Console.WriteLine($"6. Audio offset        | [{configManager.AudioOffset}]");
+            Console.WriteLine($"7. Hold before Spinner | [{(configManager.HoldBeforeSpinner ? "ENABLED" : "DISABLED")}]"); ;
+
+            Console.WriteLine("\nESC. Back to settings");
 
             switch (Console.ReadKey(true).Key)
             {
@@ -109,25 +134,25 @@ namespace osu_rx
                         configManager.PlayStyle = (PlayStyles)selected - 1;
                     else
                         goto case ConsoleKey.D1;
-                    DrawSettings();
+                    DrawRelaxSettings();
                     break;
                 case ConsoleKey.D2:
                     Console.Clear();
                     Console.Write("Enter new primary key: ");
                     configManager.PrimaryKey = (VirtualKeyCode)Console.ReadKey(true).Key;
-                    DrawSettings();
+                    DrawRelaxSettings();
                     break;
                 case ConsoleKey.D3:
                     Console.Clear();
                     Console.Write("Enter new secondary key: ");
                     configManager.SecondaryKey = (VirtualKeyCode)Console.ReadKey(true).Key;
-                    DrawSettings();
+                    DrawRelaxSettings();
                     break;
                 case ConsoleKey.D4:
                     Console.Clear();
                     Console.Write("Enter new hit window 100 key: ");
                     configManager.HitWindow100Key = (VirtualKeyCode)Console.ReadKey(true).Key;
-                    DrawSettings();
+                    DrawRelaxSettings();
                     break;
                 case ConsoleKey.D5:
                     Console.Clear();
@@ -136,7 +161,7 @@ namespace osu_rx
                         configManager.MaxSingletapBPM = bpm;
                     else
                         goto case ConsoleKey.D5;
-                    DrawSettings();
+                    DrawRelaxSettings();
                     break;
                 case ConsoleKey.D6:
                     Console.Clear();
@@ -144,10 +169,94 @@ namespace osu_rx
                     if (int.TryParse(Console.ReadLine(), out int offset))
                         configManager.AudioOffset = offset;
                     else
-                        goto case ConsoleKey.D7;
-                    DrawSettings();
+                        goto case ConsoleKey.D6;
+                    DrawRelaxSettings();
                     break;
                 case ConsoleKey.D7:
+                    configManager.HoldBeforeSpinner = !configManager.HoldBeforeSpinner;
+                    DrawRelaxSettings();
+                    break;
+                case ConsoleKey.Escape:
+                    DrawSettings();
+                    break;
+                default:
+                    DrawRelaxSettings();
+                    break;
+            }
+        }
+
+        private static void DrawHitScanSettings()
+        {
+            Console.Clear();
+            Console.WriteLine("---HitScan Settings---\n");
+            Console.WriteLine($"1. HitScan                   | [{(configManager.EnableHitScan ? "ENABLED" : "DISABLED")}]");
+            Console.WriteLine($"2. HitScan prediction        | [{(configManager.EnableHitScanPrediction ? "ENABLED" : "DISABLED")}]");
+            Console.WriteLine($"3. HitScan radius multiplier | [{configManager.HitScanRadiusMultiplier}]");
+            Console.WriteLine($"4. HitScan radius additional | [{configManager.HitScanRadiusAdditional}]");
+            Console.WriteLine($"5. HitScan max distance      | [{configManager.HitScanMaxDistance}]");
+
+            Console.WriteLine("\nESC. Back to settings");
+
+            switch (Console.ReadKey(true).Key)
+            {
+                case ConsoleKey.D1:
+                    configManager.EnableHitScan = !configManager.EnableHitScan;
+                    DrawHitScanSettings();
+                    break;
+                case ConsoleKey.D2:
+                    configManager.EnableHitScanPrediction = !configManager.EnableHitScanPrediction;
+                    DrawHitScanSettings();
+                    break;
+                case ConsoleKey.D3:
+                    Console.Clear();
+                    Console.Write("Enter new radius multiplier: ");
+                    if (float.TryParse(Console.ReadLine(), out float multiplier))
+                        configManager.HitScanRadiusMultiplier = multiplier;
+                    else
+                        goto case ConsoleKey.D3;
+                    DrawHitScanSettings();
+                    break;
+                case ConsoleKey.D4:
+                    Console.Clear();
+                    Console.Write("Enter new radius additional: ");
+                    if (int.TryParse(Console.ReadLine(), out int additional))
+                        configManager.HitScanRadiusAdditional = additional;
+                    else
+                        goto case ConsoleKey.D4;
+                    DrawHitScanSettings();
+                    break;
+                case ConsoleKey.D5:
+                    Console.Clear();
+                    Console.Write("Enter new max distance: ");
+                    if (int.TryParse(Console.ReadLine(), out int maxDistance))
+                        configManager.HitScanMaxDistance = maxDistance;
+                    else
+                        goto case ConsoleKey.D5;
+                    DrawHitScanSettings();
+                    break;
+                case ConsoleKey.Escape:
+                    DrawSettings();
+                    break;
+                default:
+                    DrawHitScanSettings();
+                    break;
+            }
+        }
+
+        private static void DrawOtherSettings()
+        {
+            Console.Clear();
+            Console.WriteLine("---Other Settings---\n");
+            Console.WriteLine($"1. Custom window title | [{(configManager.UseCustomWindowTitle ? $"ON | {configManager.CustomWindowTitle}" : "OFF")}]");
+
+            if (!osuManager.UsingIPCFallback)
+                Console.WriteLine("\n\n0. Turn on IPC Fallback mode");
+
+            Console.WriteLine("\nESC. Back to settings");
+
+            switch (Console.ReadKey(true).Key)
+            {
+                case ConsoleKey.D1:
                     Console.Clear();
                     Console.WriteLine("Use custom window title?\n");
                     Console.WriteLine("1. Yes");
@@ -162,15 +271,7 @@ namespace osu_rx
                     }
                     else
                         Console.Title = defaultConsoleTitle;
-                    DrawSettings();
-                    break;
-                case ConsoleKey.D8:
-                    configManager.EnableHitScan = !configManager.EnableHitScan;
-                    DrawSettings();
-                    break;
-                case ConsoleKey.D9:
-                    configManager.HoldBeforeSpinner = !configManager.HoldBeforeSpinner;
-                    DrawSettings();
+                    DrawOtherSettings();
                     break;
                 case ConsoleKey.D0:
                     if (!osuManager.UsingIPCFallback)
@@ -183,16 +284,16 @@ namespace osu_rx
                         Console.WriteLine("2. No");
 
                         osuManager.UsingIPCFallback = Console.ReadKey(true).Key == ConsoleKey.D1;
-                        DrawSettings();
+                        DrawOtherSettings();
                     }
                     else
-                        DrawSettings();
+                        DrawOtherSettings();
                     break;
                 case ConsoleKey.Escape:
-                    DrawMainMenu();
+                    DrawSettings();
                     break;
                 default:
-                    DrawSettings();
+                    DrawOtherSettings();
                     break;
             }
         }

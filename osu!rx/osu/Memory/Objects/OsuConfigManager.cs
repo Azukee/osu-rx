@@ -67,6 +67,20 @@ namespace osu_rx.osu.Memory.Objects
             }
         }
 
+        public int LetterboxingVerticalPosition
+        {
+            get
+            {
+                IntPtr bindableAddress = (IntPtr)OsuProcess.ReadInt32(BaseAddress + 0x274);
+                return OsuProcess.ReadInt32(bindableAddress + 0x4);
+            }
+            set
+            {
+                IntPtr bindableAddress = (IntPtr)OsuProcess.ReadInt32(BaseAddress + 0x274);
+                OsuProcess.WriteMemory(bindableAddress + 0x4, BitConverter.GetBytes(value), sizeof(int));
+            }
+        }
+
         public int Width
         {
             get
@@ -119,20 +133,6 @@ namespace osu_rx.osu.Memory.Objects
             set
             {
                 IntPtr bindableAddress = (IntPtr)OsuProcess.ReadInt32(BaseAddress + 0x180);
-                OsuProcess.WriteMemory(bindableAddress + 0x4, BitConverter.GetBytes(value), sizeof(int));
-            }
-        }
-
-        public int LetterboxingVerticalPosition
-        {
-            get
-            {
-                IntPtr bindableAddress = (IntPtr)OsuProcess.ReadInt32(BaseAddress + 0x274);
-                return OsuProcess.ReadInt32(bindableAddress + 0x4);
-            }
-            set
-            {
-                IntPtr bindableAddress = (IntPtr)OsuProcess.ReadInt32(BaseAddress + 0x274);
                 OsuProcess.WriteMemory(bindableAddress + 0x4, BitConverter.GetBytes(value), sizeof(int));
             }
         }

@@ -58,6 +58,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Configuration\ConfigManager.cs" />
+    <Compile Include="Configuration\Playstyles.cs" />
     <Compile Include="Core\HitScanResult.cs" />
     <Compile Include="Core\Relax.cs" />
     <Compile Include="Dependencies\DependencyContainer.cs" />

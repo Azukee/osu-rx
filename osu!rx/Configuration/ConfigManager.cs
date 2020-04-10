@@ -67,39 +67,30 @@ namespace osu_rx.Configuration
             set => config.SetValue<bool>("HoldBeforeSpinner", value);
         }
 
-        //TODO: expose those in next update through settings if nothing changes
         public bool EnableHitScanPrediction
         {
-            get => config.GetValue<bool>("H_EnablePrediction", true);
-            set => config.SetValue<bool>("H_EnablePrediction", value);
+            get => config.GetValue<bool>("HitscanEnablePrediction", true);
+            set => config.SetValue<bool>("HitscanEnablePrediction", value);
         }
 
         public float HitScanRadiusMultiplier
         {
-            get => config.GetValue<float>("H_RadiusMultiplier", 0.9f);
-            set => config.SetValue<float>("H_RadiusMultiplier", value);
+            get => config.GetValue<float>("HitscanRadiusMultiplier", 0.9f);
+            set => config.SetValue<float>("HitscanRadiusMultiplier", value);
         }
 
         public int HitScanRadiusAdditional
         {
-            get => config.GetValue<int>("H_RadiusAdditional", 50);
-            set => config.SetValue<int>("H_RadiusAdditional", value);
+            get => config.GetValue<int>("HitscanRadiusAdditional", 50);
+            set => config.SetValue<int>("HitscanRadiusAdditional", value);
         }
 
         public int HitScanMaxDistance
         {
-            get => config.GetValue<int>("H_MaxDistance", 30);
-            set => config.SetValue<int>("H_MaxDistance", value);
+            get => config.GetValue<int>("HitscanMaxDistance", 30);
+            set => config.SetValue<int>("HitscanMaxDistance", value);
         }
 
         public ConfigManager() => config = new Config();
-    }
-
-    public enum PlayStyles
-    {
-        Singletap,
-        Alternate,
-        MouseOnly,
-        TapX
     }
 }
