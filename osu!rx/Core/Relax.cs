@@ -299,10 +299,13 @@ namespace osu_rx.Core
             else
                 result.StartOffset = random.Next((int)(-hitWindow300 / acc), (int)(hitWindow300 / acc));
 
-            int circleHoldTime = random.Next(hitWindow300, hitWindow300 * 2);
-            int sliderHoldTime = random.Next(-hitWindow300 / 2, hitWindow300 * 2);
-
-            result.HoldTime = hitObjects[index] is HitCircle ? circleHoldTime : sliderHoldTime;
+            if (hitObjects[index] is Slider)
+            {
+                int sliderDuration = hitObjects[index].EndTime - hitObjects[index].StartTime;
+                result.HoldTime = random.Next(sliderDuration >= 72 ? -26 : sliderDuration / 2 - 10, hitWindow300 * 2);
+            }
+            else
+                result.HoldTime = random.Next(hitWindow300, hitWindow300 * 2);
 
             return result;
         }
