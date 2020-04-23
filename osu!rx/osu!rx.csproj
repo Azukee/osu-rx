@@ -37,7 +37,7 @@
       <HintPath>..\packages\OsuParsers.1.6.5\lib\netstandard2.0\OsuParsers.dll</HintPath>
     </Reference>
     <Reference Include="SimpleIniConfig, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\SimpleIniConfig.1.0.0\lib\netstandard2.0\SimpleIniConfig.dll</HintPath>
+      <HintPath>..\packages\SimpleIniConfig.1.0.1\lib\netstandard2.0\SimpleIniConfig.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
