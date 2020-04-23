@@ -83,7 +83,7 @@ namespace osu_rx.Core
             hitWindow100 = osuManager.HitWindow100(currentBeatmap.DifficultySection.OverallDifficulty);
             hitWindow300 = osuManager.HitWindow300(currentBeatmap.DifficultySection.OverallDifficulty);
 
-            int index, lastTime, hitTime = 0;
+            int index, lastRetryCount = 0, hitTime = 0;
             bool isHit, shouldStartAlternating, shouldAlternate;
             VirtualKeyCode currentKey;
             HitObject currentHitObject;
@@ -106,14 +106,14 @@ namespace osu_rx.Core
                     continue;
                 }
 
-                int currentTime = osuManager.CurrentTime + audioOffset;
-                if (currentTime < lastTime)
+                if (osuManager.RetryCount != lastRetryCount)
                 {
-                    reset();
+                    reset(true);
                     releaseAllKeys();
                     continue;
                 }
 
+                int currentTime = osuManager.CurrentTime + audioOffset;
                 if (currentTime >= currentHitObject.StartTime - hitWindow50)
                 {
                     var hitScanResult = getHitScanResult(index);
@@ -148,24 +148,22 @@ namespace osu_rx.Core
                     else if (!isHit && hitScanResult == HitScanResult.Wait && currentTime >= (currentHitObject is HitCircle ? currentHitObject.StartTime : currentHitObject.EndTime + hitWindow50))
                         moveToNextObject();
                 }
-
-                lastTime = currentTime;
             }
 
             releaseAllKeys();
 
-            while (osuManager.CanPlay && !shouldStop)
+            while (osuManager.CanPlay && index >= hitObjects.Count && !shouldStop)
                 Thread.Sleep(5);
 
-            void reset()
+            void reset(bool retry = false)
             {
-                index = closestHitObjectIndex;
+                index = retry ? 0 : closestHitObjectIndex;
                 isHit = false;
                 currentKey = primaryKey;
                 currentHitObject = hitObjects[index];
                 updateAlternate();
                 currentHitTimings = randomizeHitObjectTimings(index, shouldAlternate, false);
-                lastTime = -currentBeatmap.GeneralSection.AudioLeadIn;
+                lastRetryCount = osuManager.RetryCount;
             }
 
             void updateAlternate()
@@ -263,6 +261,12 @@ namespace osu_rx.Core
 
                     if (hitObject is Slider && osuManager.CurrentTime > hitObject.StartTime + hitWindow50)
                         return HitScanResult.ShouldHit; //force hit if starttime has ended so we can at least sliderbreak
+
+
+                    //TODO: make this work so it only hits if cursor wasn't on note ever
+                    //TODO: relax algo probably doesn't even wait enough for this to work
+                    //if (lastOnNotePosition != Vector2.Zero && distanceToObject <= hitObjectRadius + hitScanRadiusAdditional)
+                    //    return HitScanResult.CanHit; //telling relax that it can hit if cursor is somewhere near object's radius
 
                     if (distanceToObject <= hitObjectRadius + hitScanRadiusAdditional)
                         return HitScanResult.CanHit; //telling relax that it can hit if cursor is somewhere near object's radius

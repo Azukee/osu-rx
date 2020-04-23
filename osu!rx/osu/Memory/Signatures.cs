@@ -15,21 +15,11 @@
             Offset = 0x5
         };
 
-        public static readonly Signature Mods = new Signature
-        {
-            Pattern = "53 8B F1 A1 ?? ?? ?? ?? 25 ?? ?? ?? ?? 85 C0",
-            Offset = 0x4
-        };
-
         public static readonly Signature Player = new Signature
         {
             Pattern = "FF 50 0C 8B D8 8B 15",
             Offset = 0x7
         };
-
-        public static readonly int[] CursorPositionXOffsetChain = new int[]{ -2452, 8, 28, 16, 432, 380, 8, 476, 20, 304, 124 };
-        public const int CursorPositionXOffset = 4;
-        public const int CursorPositionYOffset = 8;
     }
 
     public class Signature

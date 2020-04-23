@@ -24,9 +24,6 @@ namespace osu_rx.osu
         [DllImport("user32.dll")]
         private static extern bool GetCursorPos(out Point point);
 
-        private IntPtr threadStack0Address;
-        private IntPtr modsAddress;
-
         private OsuGameBase osuGameBase;
         private OsuConfigManager osuConfigManager;
         private OsuPlayer osuPlayer;
@@ -61,7 +58,7 @@ namespace osu_rx.osu
             get
             {
                 if (!UsingIPCFallback)
-                    return (Mods)OsuProcess.ReadInt32(modsAddress);
+                    return osuGameBase.Mods;
 
                 return Mods.None;
             }
@@ -83,15 +80,8 @@ namespace osu_rx.osu
         {
             get
             {
-                if (!UsingIPCFallback)
-                {
-                    OsuProcess.Process.Refresh();
-                    return OsuProcess.Process.MainWindowTitle.Contains('-');
-                }
-
-                //TODO: remove in next release
-                var data = bulkClientDataMethod.Invoke(interProcessOsu, null);
-                return (bool)data.GetType().GetField("LPlayerLoaded").GetValue(data);
+                OsuProcess.Process.Refresh();
+                return OsuProcess.Process.MainWindowTitle.Contains('-');
             }
         }
 
@@ -167,20 +157,16 @@ namespace osu_rx.osu
             get
             {
                 if (!UsingIPCFallback)
-                {
-                    IntPtr cursorPositionAddress = threadStack0Address;
-                    foreach (var offset in Signatures.CursorPositionXOffsetChain)
-                        cursorPositionAddress = (IntPtr)OsuProcess.ReadInt32(cursorPositionAddress + offset);
-
-                    int x = OsuProcess.ReadInt32(cursorPositionAddress + Signatures.CursorPositionXOffset);
-                    int y = OsuProcess.ReadInt32(cursorPositionAddress + Signatures.CursorPositionYOffset);
-
-                    return new Vector2(x, y) - OsuWindow.PlayfieldPosition;
-                }
+                    return osuPlayer.Ruleset.MousePosition - OsuWindow.PlayfieldPosition;
 
                 GetCursorPos(out var pos);
                 return pos.ToVector2() - (OsuWindow.WindowPosition + OsuWindow.PlayfieldPosition);
             }
+        }
+
+        public int RetryCount
+        {
+            get => osuGameBase.RetryCount;
         }
 
         public string PathToOsu { get; private set; }
@@ -274,12 +260,9 @@ namespace osu_rx.osu
             {
                 Console.WriteLine("\nScanning for memory addresses...");
 
-                threadStack0Address = OsuProcess.GetThreadStack0Address();
-
                 IntPtr osuGameBaseAddress = (IntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Signatures.GameBase.Pattern) + Signatures.GameBase.Offset);
                 IntPtr osuConfigManagerAddress = (IntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Signatures.ConfigManager.Pattern) + Signatures.ConfigManager.Offset);
                 IntPtr osuPlayerAddress = (IntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Signatures.Player.Pattern) + Signatures.Player.Offset);
-                modsAddress = (IntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Signatures.Mods.Pattern) + Signatures.Mods.Offset);
 
                 osuGameBase = new OsuGameBase(osuGameBaseAddress);
                 osuConfigManager = new OsuConfigManager(osuConfigManagerAddress);
@@ -288,9 +271,8 @@ namespace osu_rx.osu
             catch { }
             finally
             {
-                if (threadStack0Address == IntPtr.Zero || modsAddress == IntPtr.Zero || osuGameBase == null
-                    || osuConfigManager == null || osuGameBase.BaseAddress == IntPtr.Zero || osuConfigManager.BaseAddress == IntPtr.Zero
-                    || osuPlayer == null || osuPlayer.PointerToBaseAddress == IntPtr.Zero)
+                if (osuGameBase == null || osuConfigManager == null || osuGameBase.BaseAddress == IntPtr.Zero
+                    || osuConfigManager.BaseAddress == IntPtr.Zero || osuPlayer == null || osuPlayer.PointerToBaseAddress == IntPtr.Zero)
                 {
                     Console.WriteLine("\nScanning failed! Using IPC fallback...");
                     UsingIPCFallback = true;
