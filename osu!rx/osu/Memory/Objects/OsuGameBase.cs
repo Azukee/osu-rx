@@ -7,38 +7,38 @@ namespace osu_rx.osu.Memory.Objects
     {
         public int Time
         {
-            get => OsuProcess.ReadInt32(BaseAddress + 0x220);
-            set => OsuProcess.WriteMemory(BaseAddress + 0x220, BitConverter.GetBytes(value), sizeof(int));
+            get => OsuProcess.ReadInt32(BaseAddress + 0x394);
+            set => OsuProcess.WriteMemory(BaseAddress + 0x394, BitConverter.GetBytes(value), sizeof(int));
         }
 
         public bool IsAudioPlaying
         {
-            get => OsuProcess.ReadBool(BaseAddress + 0x250);
-            set => OsuProcess.WriteMemory(BaseAddress + 0x250, BitConverter.GetBytes(value), sizeof(bool));
+            get => OsuProcess.ReadBool(BaseAddress + 0x3C4);
+            set => OsuProcess.WriteMemory(BaseAddress + 0x3C4, BitConverter.GetBytes(value), sizeof(bool));
         }
 
         public OsuStates State
         {
-            get => (OsuStates)OsuProcess.ReadInt32(BaseAddress + 0x33C);
-            set => OsuProcess.WriteMemory(BaseAddress + 0x33C, BitConverter.GetBytes((int)value), sizeof(int));
+            get => (OsuStates)OsuProcess.ReadInt32(BaseAddress + 0x130);
+            set => OsuProcess.WriteMemory(BaseAddress + 0x130, BitConverter.GetBytes((int)value), sizeof(int));
         }
 
         public Mods Mods
         {
-            get => (Mods)OsuProcess.ReadInt32(BaseAddress + 0x42C);
-            set => OsuProcess.WriteMemory(BaseAddress + 0x42C, BitConverter.GetBytes((int)value), sizeof(int));
+            get => (Mods)OsuProcess.ReadInt32(BaseAddress + 0x28C);
+            set => OsuProcess.WriteMemory(BaseAddress + 0x28C, BitConverter.GetBytes((int)value), sizeof(int));
         }
 
         public bool ReplayMode
         {
-            get => OsuProcess.ReadBool(BaseAddress + 0x67C);
-            set => OsuProcess.WriteMemory(BaseAddress + 0x67C, BitConverter.GetBytes(value), sizeof(bool));
+            get => OsuProcess.ReadBool(BaseAddress);
+            set => OsuProcess.WriteMemory(BaseAddress, BitConverter.GetBytes(value), sizeof(bool));
         }
 
         public int RetryCount
         {
-            get => OsuProcess.ReadInt32(BaseAddress + 0x44);
-            set => OsuProcess.WriteMemory(BaseAddress + 0x44, BitConverter.GetBytes(value), sizeof(int));
+            get => OsuProcess.ReadInt32(BaseAddress + 0x450);
+            set => OsuProcess.WriteMemory(BaseAddress + 0x450, BitConverter.GetBytes(value), sizeof(int));
         }
 
         public OsuGameBase(IntPtr baseAddress) => BaseAddress = baseAddress;

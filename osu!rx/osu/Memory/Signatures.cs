@@ -5,8 +5,9 @@
         public static readonly Signature GameBase = new Signature
         {
             //TODO: this might not actually be a gamebase because replaymode shouldn't be a part of it
-            Pattern = "C7 45 E8 ?? ?? ?? ?? E9 ?? ?? ?? ?? A1 ?? ?? ?? ?? 89 45 CC 8B 45 D4",
-            Offset = 0xD
+            //TODO: that's actually ReplayMode's pattern but who cares LUL, ^ also yeah it's not a gamebase
+            Pattern = "85 C0 75 0D 80 3D",
+            Offset = 0x6
         };
 
         public static readonly Signature ConfigManager = new Signature
