@@ -61,10 +61,10 @@ namespace osu_rx.Configuration
             set => config.SetValue<bool>("EnableHitScan", value);
         }
 
-        public bool HoldBeforeSpinner
+        public int HoldBeforeSpinnerTime
         {
-            get => config.GetValue<bool>("HoldBeforeSpinner", true);
-            set => config.SetValue<bool>("HoldBeforeSpinner", value);
+            get => config.GetValue<int>("HoldBeforeSpinnerTime", 500);
+            set => config.SetValue<int>("HoldBeforeSpinnerTime", value);
         }
 
         public bool EnableHitScanPrediction

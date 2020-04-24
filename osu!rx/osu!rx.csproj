@@ -62,7 +62,6 @@
     <Compile Include="Core\HitScanResult.cs" />
     <Compile Include="Core\Relax.cs" />
     <Compile Include="Dependencies\DependencyContainer.cs" />
-    <Compile Include="Extensions\VanityFunctions.cs" />
     <Compile Include="osu\Memory\Objects\OsuPlayer.cs" />
     <Compile Include="osu\Memory\Signatures.cs" />
     <Compile Include="Helpers\CryptoHelper.cs" />

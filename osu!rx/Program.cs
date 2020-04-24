@@ -112,13 +112,13 @@ namespace osu_rx
         {
             Console.Clear();
             Console.WriteLine("---Relax Settings---\n");
-            Console.WriteLine($"1. Playstyle           | [{configManager.PlayStyle}]");
-            Console.WriteLine($"2. Primary key         | [{configManager.PrimaryKey}]");
-            Console.WriteLine($"3. Secondary key       | [{configManager.SecondaryKey}]");
-            Console.WriteLine($"4. Hit window 100 key  | [{configManager.HitWindow100Key}]");
-            Console.WriteLine($"5. Max singletap BPM   | [{configManager.MaxSingletapBPM}]");
-            Console.WriteLine($"6. Audio offset        | [{configManager.AudioOffset}]");
-            Console.WriteLine($"7. Hold before Spinner | [{(configManager.HoldBeforeSpinner ? "ENABLED" : "DISABLED")}]"); ;
+            Console.WriteLine($"1. Playstyle              | [{configManager.PlayStyle}]");
+            Console.WriteLine($"2. Primary key            | [{configManager.PrimaryKey}]");
+            Console.WriteLine($"3. Secondary key          | [{configManager.SecondaryKey}]");
+            Console.WriteLine($"4. Hit window 100 key     | [{configManager.HitWindow100Key}]");
+            Console.WriteLine($"5. Max singletap BPM      | [{configManager.MaxSingletapBPM}]");
+            Console.WriteLine($"6. Audio offset           | [{configManager.AudioOffset}]");
+            Console.WriteLine($"7. HoldBeforeSpinner time | [{configManager.HoldBeforeSpinnerTime}]");
 
             Console.WriteLine("\nESC. Back to settings");
 
@@ -173,7 +173,12 @@ namespace osu_rx
                     DrawRelaxSettings();
                     break;
                 case ConsoleKey.D7:
-                    configManager.HoldBeforeSpinner = !configManager.HoldBeforeSpinner;
+                    Console.Clear();
+                    Console.Write("Enter new HoldBeforeSpinner time: ");
+                    if (int.TryParse(Console.ReadLine(), out int holdBeforeSpinnerTime))
+                        configManager.HoldBeforeSpinnerTime = holdBeforeSpinnerTime;
+                    else
+                        goto case ConsoleKey.D7;
                     DrawRelaxSettings();
                     break;
                 case ConsoleKey.Escape:
@@ -339,12 +344,12 @@ namespace osu_rx
                     continue;
                 }
 
+                while (!osuManager.CanPlay)
+                    Thread.Sleep(1);
+
                 Console.Clear();
                 Console.WriteLine($"Playing {beatmap.MetadataSection.Artist} - {beatmap.MetadataSection.Title} ({beatmap.MetadataSection.Creator}) [{beatmap.MetadataSection.Version}]");
                 Console.WriteLine("\nPress ESC to return to the main menu.");
-
-                while (!osuManager.CanPlay)
-                    Thread.Sleep(1);
 
                 relax.Start();
             }

@@ -6,13 +6,10 @@ using OsuParsers.Beatmaps;
 using OsuParsers.Beatmaps.Objects;
 using OsuParsers.Enums;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 using System.Threading;
 using WindowsInput;
 using WindowsInput.Native;
-using osu_rx.Extensions;
 
 namespace osu_rx.Core
 {
@@ -29,14 +26,11 @@ namespace osu_rx.Core
         private VirtualKeyCode secondaryKey;
 
         private bool hitScanEnabled;
-        private bool holdBeforeSpinnerEnabled;
+        private int holdBeforeSpinnerTime;
         private bool hitScanPredictionEnabled;
         private float hitScanRadiusMultiplier;
         private int hitScanMaxDistance;
         private float hitScanRadiusAdditional;
-
-        // Keep a list of HitObjects to modify
-        private List<HitObject> hitObjects = new List<HitObject>();
 
         private int hitWindow50;
         private int hitWindow100;
@@ -62,12 +56,11 @@ namespace osu_rx.Core
         {
             shouldStop = false;
             currentBeatmap = osuManager.CurrentBeatmap;
-            hitObjects = VanityFunctions.CopyList(currentBeatmap.HitObjects);
             primaryKey = configManager.PrimaryKey;
             secondaryKey = configManager.SecondaryKey;
 
             hitScanEnabled = configManager.EnableHitScan;
-            holdBeforeSpinnerEnabled = configManager.HoldBeforeSpinner;
+            holdBeforeSpinnerTime = configManager.HoldBeforeSpinnerTime;
             hitScanPredictionEnabled = configManager.EnableHitScanPrediction;
             hitScanRadiusMultiplier = configManager.HitScanRadiusMultiplier;
             hitScanMaxDistance = configManager.HitScanMaxDistance;
@@ -83,7 +76,7 @@ namespace osu_rx.Core
             hitWindow100 = osuManager.HitWindow100(currentBeatmap.DifficultySection.OverallDifficulty);
             hitWindow300 = osuManager.HitWindow300(currentBeatmap.DifficultySection.OverallDifficulty);
 
-            int index, lastRetryCount = 0, hitTime = 0;
+            int index, lastRetryCount, hitTime = 0;
             bool isHit, shouldStartAlternating, shouldAlternate;
             VirtualKeyCode currentKey;
             HitObject currentHitObject;
@@ -91,7 +84,7 @@ namespace osu_rx.Core
 
             reset();
 
-            while (osuManager.CanPlay && index < hitObjects.Count && !shouldStop)
+            while (osuManager.CanPlay && index < currentBeatmap.HitObjects.Count && !shouldStop)
             {
                 Thread.Sleep(1);
 
@@ -141,8 +134,12 @@ namespace osu_rx.Core
                     }
                     else if (isHit && currentTime >= (currentHitObject is HitCircle ? hitTime : currentHitObject.EndTime) + currentHitTimings.HoldTime)
                     {
-                        isHit = false;
                         moveToNextObject();
+
+                        if (currentHitObject is Spinner && currentHitObject.StartTime - currentBeatmap.HitObjects[index - 1].EndTime <= holdBeforeSpinnerTime)
+                            continue;
+
+                        isHit = false;
                         releaseAllKeys();
                     }
                     else if (!isHit && hitScanResult == HitScanResult.Wait && currentTime >= (currentHitObject is HitCircle ? currentHitObject.StartTime : currentHitObject.EndTime + hitWindow50))
@@ -152,7 +149,7 @@ namespace osu_rx.Core
 
             releaseAllKeys();
 
-            while (osuManager.CanPlay && index >= hitObjects.Count && !shouldStop)
+            while (osuManager.CanPlay && index >= currentBeatmap.HitObjects.Count && !shouldStop)
                 Thread.Sleep(5);
 
             void reset(bool retry = false)
@@ -160,7 +157,7 @@ namespace osu_rx.Core
                 index = retry ? 0 : closestHitObjectIndex;
                 isHit = false;
                 currentKey = primaryKey;
-                currentHitObject = hitObjects[index];
+                currentHitObject = currentBeatmap.HitObjects[index];
                 updateAlternate();
                 currentHitTimings = randomizeHitObjectTimings(index, shouldAlternate, false);
                 lastRetryCount = osuManager.RetryCount;
@@ -168,8 +165,8 @@ namespace osu_rx.Core
 
             void updateAlternate()
             {
-                var lastHitObject = index > 0 ? hitObjects[index - 1] : null;
-                var nextHitObject = index + 1 < hitObjects.Count ? hitObjects[index + 1] : null;
+                var lastHitObject = index > 0 ? currentBeatmap.HitObjects[index - 1] : null;
+                var nextHitObject = index + 1 < currentBeatmap.HitObjects.Count ? currentBeatmap.HitObjects[index + 1] : null;
 
                 // This is to fix possible divide by zero exception's
                 
@@ -184,19 +181,9 @@ namespace osu_rx.Core
             void moveToNextObject()
             {
                 index++;
-                if (index < hitObjects.Count)
+                if (index < currentBeatmap.HitObjects.Count)
                 {
-                    currentHitObject = hitObjects[index];
-                    var nextHitObject = index + 1 < hitObjects.Count ? hitObjects[index + 1] : null;
-
-                    // Check if next object is a spinner, if so, hold!
-                    if (nextHitObject is Spinner && holdBeforeSpinnerEnabled)
-                    {
-                        nextHitObject.StartTime = currentHitObject.StartTime;
-                        currentHitObject = nextHitObject;
-
-                        hitObjects.Remove(nextHitObject);
-                    }
+                    currentHitObject = currentBeatmap.HitObjects[index];
 
                     updateAlternate();
                     currentHitTimings = randomizeHitObjectTimings(index, shouldAlternate, inputSimulator.InputDeviceState.IsKeyDown(hit100Key));
@@ -219,10 +206,10 @@ namespace osu_rx.Core
             get
             {
                 int time = osuManager.CurrentTime;
-                for (int i = 0; i < hitObjects.Count; i++)
-                    if (hitObjects[i].StartTime >= time)
+                for (int i = 0; i < currentBeatmap.HitObjects.Count; i++)
+                    if (currentBeatmap.HitObjects[i].StartTime >= time)
                         return i;
-                return hitObjects.Count;
+                return currentBeatmap.HitObjects.Count;
             }
         }
 
@@ -230,7 +217,7 @@ namespace osu_rx.Core
         private Vector2 lastOnNotePosition = Vector2.Zero;
         private HitScanResult getHitScanResult(int index)
         {
-            var hitObject = hitObjects[index];
+            var hitObject = currentBeatmap.HitObjects[index];
 
             if (!hitScanEnabled || hitObject is Spinner)
                 return HitScanResult.CanHit;
@@ -299,9 +286,9 @@ namespace osu_rx.Core
             else
                 result.StartOffset = random.Next((int)(-hitWindow300 / acc), (int)(hitWindow300 / acc));
 
-            if (hitObjects[index] is Slider)
+            if (currentBeatmap.HitObjects[index] is Slider)
             {
-                int sliderDuration = hitObjects[index].EndTime - hitObjects[index].StartTime;
+                int sliderDuration = currentBeatmap.HitObjects[index].EndTime - currentBeatmap.HitObjects[index].StartTime;
                 result.HoldTime = random.Next(sliderDuration >= 72 ? -26 : sliderDuration / 2 - 10, hitWindow300 * 2);
             }
             else
