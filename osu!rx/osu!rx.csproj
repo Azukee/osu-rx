@@ -67,7 +67,6 @@
     <Compile Include="Helpers\CryptoHelper.cs" />
     <Compile Include="Helpers\Extensions.cs" />
     <Compile Include="osu\Memory\Objects\OsuConfigManager.cs" />
-    <Compile Include="osu\Memory\Objects\OsuGameBase.cs" />
     <Compile Include="osu\Memory\Objects\OsuObject.cs" />
     <Compile Include="osu\OsuManager.cs" />
     <Compile Include="osu\Memory\OsuProcess.cs" />

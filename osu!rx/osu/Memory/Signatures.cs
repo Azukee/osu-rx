@@ -2,12 +2,36 @@
 {
     public static class Signatures
     {
-        public static readonly Signature GameBase = new Signature
+        public static readonly Signature Time = new Signature
         {
-            //TODO: this might not actually be a gamebase because replaymode shouldn't be a part of it
-            //TODO: that's actually ReplayMode's pattern but who cares LUL, ^ also yeah it's not a gamebase
+            Pattern = "7E 55 8B 76 10 DB 05",
+            Offset = 0x7
+        };
+
+        public const int IsAudioPlayingOffset = 0x30;
+
+        public static readonly Signature Mods = new Signature
+        {
+            Pattern = "85 DB 75 0A 81 25",
+            Offset = 0x6
+        };
+
+        public static readonly Signature State = new Signature
+        {
+            Pattern = "8D 45 BC 89 46 0C 83 3D",
+            Offset = 0x8
+        };
+
+        public static readonly Signature ReplayMode = new Signature
+        {
             Pattern = "85 C0 75 0D 80 3D",
             Offset = 0x6
+        };
+
+        public static readonly Signature RetryCount = new Signature
+        {
+            Pattern = "74 08 FF 05 ?? ?? ?? ?? EB 08 33 D2",
+            Offset = 0x4
         };
 
         public static readonly Signature ConfigManager = new Signature

@@ -24,10 +24,6 @@ namespace osu_rx.osu
         [DllImport("user32.dll")]
         private static extern bool GetCursorPos(out Point point);
 
-        private OsuGameBase osuGameBase;
-        private OsuConfigManager osuConfigManager;
-        private OsuPlayer osuPlayer;
-
         private object interProcessOsu;
         private MethodInfo bulkClientDataMethod;
 
@@ -46,7 +42,7 @@ namespace osu_rx.osu
             get
             {
                 if (!UsingIPCFallback)
-                    return osuGameBase.Time;
+                    return OsuProcess.ReadInt32(timeAddress);
 
                 var data = bulkClientDataMethod.Invoke(interProcessOsu, null);
                 return (int)data.GetType().GetField("MenuTime").GetValue(data);
@@ -58,7 +54,7 @@ namespace osu_rx.osu
             get
             {
                 if (!UsingIPCFallback)
-                    return osuGameBase.Mods;
+                    return (Mods)OsuProcess.ReadInt32(modsAddress);
 
                 return Mods.None;
             }
@@ -69,7 +65,7 @@ namespace osu_rx.osu
             get
             {
                 if (!UsingIPCFallback)
-                    return !osuGameBase.IsAudioPlaying;
+                    return !OsuProcess.ReadBool(timeAddress + Signatures.IsAudioPlayingOffset);
 
                 var data = bulkClientDataMethod.Invoke(interProcessOsu, null);
                 return !(bool)data.GetType().GetField("AudioPlaying").GetValue(data);
@@ -90,7 +86,7 @@ namespace osu_rx.osu
             get
             {
                 if (!UsingIPCFallback)
-                    return osuGameBase.ReplayMode;
+                    return OsuProcess.ReadBool(replayModeAddress);
 
                 var data = bulkClientDataMethod.Invoke(interProcessOsu, null);
                 return (bool)data.GetType().GetField("LReplayMode").GetValue(data);
@@ -135,7 +131,7 @@ namespace osu_rx.osu
             get
             {
                 if (!UsingIPCFallback)
-                    return osuGameBase.State;
+                    return (OsuStates)OsuProcess.ReadInt32(stateAddress);
 
                 var data = bulkClientDataMethod.Invoke(interProcessOsu, null);
                 return (OsuStates)data.GetType().GetField("Mode").GetValue(data);
@@ -166,7 +162,7 @@ namespace osu_rx.osu
 
         public int RetryCount
         {
-            get => osuGameBase.RetryCount;
+            get => OsuProcess.ReadInt32(retryCountAddress);
         }
 
         public string PathToOsu { get; private set; }
@@ -254,25 +250,45 @@ namespace osu_rx.osu
                 SongsPath = $@"{PathToOsu}\Songs";
         }
 
+        private UIntPtr timeAddress;
+        private UIntPtr modsAddress;
+        private UIntPtr stateAddress;
+        private UIntPtr replayModeAddress;
+        private UIntPtr retryCountAddress;
+        private OsuPlayer osuPlayer;
+        private Stopwatch sw = new Stopwatch();
         private void scanMemory()
         {
             try
             {
-                Console.WriteLine("\nScanning for memory addresses...");
+                Console.WriteLine("\nScanning for memory addresses (this may take a while)...");
 
-                UIntPtr osuGameBaseAddress = (UIntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Signatures.GameBase.Pattern) + Signatures.GameBase.Offset);
-                //UIntPtr osuConfigManagerAddress = (UIntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Signatures.ConfigManager.Pattern) + Signatures.ConfigManager.Offset);
-                UIntPtr osuPlayerAddress = (UIntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Signatures.Player.Pattern) + Signatures.Player.Offset);
-
-                osuGameBase = new OsuGameBase(osuGameBaseAddress);
-                //osuConfigManager = new OsuConfigManager(osuConfigManagerAddress);
-                osuPlayer = new OsuPlayer(osuPlayerAddress);
+                sw.Start();
+                //TODO: gooood this is dirty af
+                if (OsuProcess.FindPattern(Signatures.Time.Pattern, out UIntPtr timeResult) 
+                    && OsuProcess.FindPattern(Signatures.Mods.Pattern, out UIntPtr modsResult)
+                    && OsuProcess.FindPattern(Signatures.State.Pattern, out UIntPtr stateResult) 
+                    && OsuProcess.FindPattern(Signatures.ReplayMode.Pattern, out UIntPtr replayModeResult)
+                    && OsuProcess.FindPattern(Signatures.RetryCount.Pattern, out UIntPtr retryCountResult)
+                    && OsuProcess.FindPattern(Signatures.Player.Pattern, out UIntPtr playerResult))
+                {
+                    timeAddress = (UIntPtr)OsuProcess.ReadInt32(timeResult + Signatures.Time.Offset);
+                    modsAddress = (UIntPtr)OsuProcess.ReadInt32(modsResult + Signatures.Mods.Offset);
+                    stateAddress = (UIntPtr)OsuProcess.ReadInt32(stateResult + Signatures.State.Offset);
+                    replayModeAddress = (UIntPtr)OsuProcess.ReadInt32(replayModeResult + Signatures.ReplayMode.Offset);
+                    retryCountAddress = (UIntPtr)OsuProcess.ReadInt32(retryCountResult + Signatures.RetryCount.Offset);
+                    osuPlayer = new OsuPlayer((UIntPtr)OsuProcess.ReadInt32(playerResult + Signatures.Player.Offset));
+                }
+                sw.Stop();
+                Console.WriteLine(sw.ElapsedMilliseconds);
+                Console.ReadLine();
             }
             catch { }
             finally
             {
-                if (osuGameBase == null || /*osuConfigManager == null ||*/ osuGameBase.BaseAddress == UIntPtr.Zero
-                    || /*osuConfigManager.BaseAddress == UIntPtr.Zero ||*/ osuPlayer == null || osuPlayer.PointerToBaseAddress == UIntPtr.Zero)
+                if (timeAddress == UIntPtr.Zero || modsAddress == UIntPtr.Zero || stateAddress == UIntPtr.Zero 
+                    || replayModeAddress == UIntPtr.Zero || retryCountAddress == UIntPtr.Zero || osuPlayer == null
+                    || osuPlayer.PointerToBaseAddress == UIntPtr.Zero)
                 {
                     Console.WriteLine("\nScanning failed! Using IPC fallback...");
                     UsingIPCFallback = true;

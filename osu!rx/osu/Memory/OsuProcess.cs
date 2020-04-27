@@ -34,7 +34,7 @@ namespace osu_rx.osu.Memory
 
         public OsuProcess(Process process) => Process = process;
 
-        public UIntPtr FindPattern(string pattern)
+        public bool FindPattern(string pattern, out UIntPtr result)
         {
             byte?[] patternBytes = parsePattern(pattern);
 
@@ -46,10 +46,14 @@ namespace osu_rx.osu.Memory
 
                 byte[] buffer = ReadMemory(region.BaseAddress, region.RegionSize.ToUInt32());
                 if (findMatch(patternBytes, buffer) is var match && match != UIntPtr.Zero)
-                    return (UIntPtr)(region.BaseAddress.ToUInt32() + match.ToUInt32());
+                {
+                    result = (UIntPtr)(region.BaseAddress.ToUInt32() + match.ToUInt32());
+                    return true;
+                }
             }
 
-            return UIntPtr.Zero;
+            result = UIntPtr.Zero;
+            return false;
         }
 
         public List<MemoryRegion> EnumerateMemoryRegions()
