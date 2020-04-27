@@ -46,13 +46,14 @@
             Offset = 0x7
         };
 
+        //TODO: i couldn't create signature for this one :(
         public static readonly int[] AudioRateOffsets = new int[]
         {
             0x00034268,
             0x8,
             0x10,
             0xC,
-            0x48
+            0x40
         };
     }
 

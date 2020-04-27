@@ -37,11 +37,10 @@ namespace osu_rx.Core
 
         public void Update(double rate, double initialRate)
         {
-            if (osuManager.OsuProcess.ReadDouble(audioRateAddress) != rate * defaultRate)
+            if (osuManager.OsuProcess.ReadDouble(audioRateAddress) != rate)
             {
-                Console.WriteLine(osuManager.OsuProcess.ReadDouble(audioRateAddress));
-                osuManager.OsuProcess.WriteMemory(audioRateAddress, BitConverter.GetBytes(rate * defaultRate), sizeof(double));
-                //osuManager.OsuProcess.WriteMemory(audioRateAddress + 0x8, BitConverter.GetBytes(rate * defaultRate), sizeof(double));
+                osuManager.OsuProcess.WriteMemory(audioRateAddress, BitConverter.GetBytes(rate), sizeof(double));
+                osuManager.OsuProcess.WriteMemory(audioRateAddress + 0x8, BitConverter.GetBytes(rate * defaultRate), sizeof(double));
             }
 
             //bypassing audio checks
@@ -50,8 +49,8 @@ namespace osu_rx.Core
 
         public void Reset()
         {
-            osuManager.OsuProcess.WriteMemory(audioRateAddress, BitConverter.GetBytes(defaultRate), sizeof(double));
-            //osuManager.OsuProcess.WriteMemory(audioRateAddress + 0x8, BitConverter.GetBytes(defaultRate), sizeof(double));
+            osuManager.OsuProcess.WriteMemory(audioRateAddress, BitConverter.GetBytes(1), sizeof(double));
+            osuManager.OsuProcess.WriteMemory(audioRateAddress + 0x8, BitConverter.GetBytes(defaultRate), sizeof(double));
         }
     }
 }
