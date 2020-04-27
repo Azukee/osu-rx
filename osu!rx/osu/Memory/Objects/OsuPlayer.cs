@@ -5,20 +5,20 @@ namespace osu_rx.osu.Memory.Objects
 {
     public class OsuPlayer : OsuObject
     {
-        public IntPtr PointerToBaseAddress { get; private set; }
+        public UIntPtr PointerToBaseAddress { get; private set; }
 
-        public override IntPtr BaseAddress
+        public override UIntPtr BaseAddress
         {
-            get => (IntPtr)OsuProcess.ReadInt32(PointerToBaseAddress);
+            get => (UIntPtr)OsuProcess.ReadInt32(PointerToBaseAddress);
             protected set { }
         }
 
         public OsuRuleset Ruleset
         {
-            get => new OsuRuleset((IntPtr)OsuProcess.ReadInt32(BaseAddress + 0x60));
+            get => new OsuRuleset((UIntPtr)OsuProcess.ReadInt32(BaseAddress + 0x60));
         }
 
-        public OsuPlayer(IntPtr pointerToBaseAddress) => PointerToBaseAddress = pointerToBaseAddress;
+        public OsuPlayer(UIntPtr pointerToBaseAddress) => PointerToBaseAddress = pointerToBaseAddress;
     }
 
     public class OsuRuleset : OsuObject
@@ -58,6 +58,6 @@ namespace osu_rx.osu.Memory.Objects
             }
         }*/
 
-        public OsuRuleset(IntPtr baseAddress) => BaseAddress = baseAddress;
+        public OsuRuleset(UIntPtr baseAddress) => BaseAddress = baseAddress;
     }
 }

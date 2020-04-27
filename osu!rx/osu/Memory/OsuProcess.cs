@@ -1,76 +1,105 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using static osu_rx.osu.Memory.OsuProcess;
 
 namespace osu_rx.osu.Memory
 {
     public class OsuProcess
     {
-        [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern bool ReadProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress, [Out] byte[] lpBuffer, IntPtr dwSize, out IntPtr lpNumberOfBytesRead);
+        [StructLayout(LayoutKind.Sequential)]
+        public struct MEMORY_BASIC_INFORMATION
+        {
+            public UIntPtr BaseAddress;
+            public UIntPtr AllocationBase;
+            public uint AllocationProtect;
+            public UIntPtr RegionSize;
+            public MemoryState State;
+            public MemoryProtect Protect;
+            public MemoryType Type;
+        }
 
         [DllImport("kernel32.dll", SetLastError = true)]
-        public static extern bool WriteProcessMemory(IntPtr hProcess, IntPtr lpBaseAddress, byte[] lpBuffer, uint nSize, out UIntPtr lpNumberOfBytesWritten);
+        private static extern bool ReadProcessMemory(IntPtr hProcess, UIntPtr lpBaseAddress, [Out] byte[] lpBuffer, uint dwSize, out UIntPtr lpNumberOfBytesRead);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool WriteProcessMemory(IntPtr hProcess, UIntPtr lpBaseAddress, byte[] lpBuffer, uint nSize, out UIntPtr lpNumberOfBytesWritten);
+
+        //TODO: x64 support
+        [DllImport("kernel32.dll")]
+        public static extern int VirtualQueryEx(IntPtr hProcess, UIntPtr lpAddress, out MEMORY_BASIC_INFORMATION lpBuffer, uint dwLength);
 
         public Process Process { get; private set; }
 
         public OsuProcess(Process process) => Process = process;
 
-        public IntPtr FindPattern(string pattern)
+        public UIntPtr FindPattern(string pattern)
         {
             byte?[] patternBytes = parsePattern(pattern);
 
-            long startAddress = (long)Process.MainModule.EntryPointAddress;
-            long endAddress = startAddress + 0x100000000;
-
-            long currentAddress = startAddress;
-
-            byte[] buffer = new byte[8192];
-
-            while (currentAddress < endAddress)
+            var regions = EnumerateMemoryRegions();
+            foreach (var region in regions)
             {
-                ReadMemory((IntPtr)currentAddress, buffer, 8192);
-                IntPtr index = findMatch(patternBytes, buffer, buffer.Length);
-                if (index != IntPtr.Zero)
-                    return new IntPtr(currentAddress + (long)index);
-                currentAddress += 8192;
+                if ((uint)region.BaseAddress < (uint)Process.MainModule.BaseAddress)
+                    continue;
+
+                byte[] buffer = ReadMemory(region.BaseAddress, region.RegionSize.ToUInt32());
+                if (findMatch(patternBytes, buffer) is var match && match != UIntPtr.Zero)
+                    return (UIntPtr)(region.BaseAddress.ToUInt32() + match.ToUInt32());
             }
 
-            return IntPtr.Zero;
+            return UIntPtr.Zero;
         }
 
-        public byte[] ReadMemory(IntPtr address, long size)
+        public List<MemoryRegion> EnumerateMemoryRegions()
+        {
+            var regions = new List<MemoryRegion>();
+            UIntPtr address = UIntPtr.Zero;
+
+            while (VirtualQueryEx(Process.Handle, address, out MEMORY_BASIC_INFORMATION basicInformation, (uint)Marshal.SizeOf(typeof(MEMORY_BASIC_INFORMATION))) != 0)
+            {
+                if (basicInformation.State != MemoryState.MemFree && !basicInformation.Protect.HasFlag(MemoryProtect.PageGuard))
+                    regions.Add(new MemoryRegion(basicInformation));
+
+                address = (UIntPtr)(basicInformation.BaseAddress.ToUInt32() + basicInformation.RegionSize.ToUInt32());
+            }
+
+            return regions;
+        }
+
+        public byte[] ReadMemory(UIntPtr address, uint size)
         {
             byte[] result = new byte[size];
-            ReadProcessMemory(Process.Handle, address, result, (IntPtr)size, out IntPtr bytesRead);
+            ReadProcessMemory(Process.Handle, address, result, size, out UIntPtr bytesRead);
             return result;
         }
 
-        public IntPtr ReadMemory(IntPtr address, byte[] buffer, long size)
+        public UIntPtr ReadMemory(UIntPtr address, byte[] buffer, uint size)
         {
-            IntPtr bytesRead;
-            ReadProcessMemory(Process.Handle, address, buffer, (IntPtr)size, out bytesRead);
+            UIntPtr bytesRead;
+            ReadProcessMemory(Process.Handle, address, buffer, size, out bytesRead);
             return bytesRead;
         }
 
-        public void WriteMemory(IntPtr address, byte[] data, uint length)
+        public void WriteMemory(UIntPtr address, byte[] data, uint length)
         {
             WriteProcessMemory(Process.Handle, address, data, length, out UIntPtr bytesWritten);
         }
 
-        public int ReadInt32(IntPtr address) => BitConverter.ToInt32(ReadMemory(address, sizeof(int)), 0);
+        public int ReadInt32(UIntPtr address) => BitConverter.ToInt32(ReadMemory(address, sizeof(int)), 0);
 
-        public uint ReadUInt32(IntPtr address) => BitConverter.ToUInt32(ReadMemory(address, sizeof(uint)), 0);
+        public uint ReadUInt32(UIntPtr address) => BitConverter.ToUInt32(ReadMemory(address, sizeof(uint)), 0);
 
-        public long ReadInt64(IntPtr address) => BitConverter.ToInt64(ReadMemory(address, sizeof(long)), 0);
+        public long ReadInt64(UIntPtr address) => BitConverter.ToInt64(ReadMemory(address, sizeof(long)), 0);
 
-        public ulong ReadUInt64(IntPtr address) => BitConverter.ToUInt64(ReadMemory(address, sizeof(ulong)), 0);
+        public ulong ReadUInt64(UIntPtr address) => BitConverter.ToUInt64(ReadMemory(address, sizeof(ulong)), 0);
 
-        public float ReadFloat(IntPtr address) => BitConverter.ToSingle(ReadMemory(address, sizeof(float)), 0);
+        public float ReadFloat(UIntPtr address) => BitConverter.ToSingle(ReadMemory(address, sizeof(float)), 0);
 
-        public double ReadDouble(IntPtr address) => BitConverter.ToDouble(ReadMemory(address, sizeof(double)), 0);
+        public double ReadDouble(UIntPtr address) => BitConverter.ToDouble(ReadMemory(address, sizeof(double)), 0);
 
-        public bool ReadBool(IntPtr address) => BitConverter.ToBoolean(ReadMemory(address, sizeof(bool)), 0);
+        public bool ReadBool(UIntPtr address) => BitConverter.ToBoolean(ReadMemory(address, sizeof(bool)), 0);
 
         private byte?[] parsePattern(string pattern)
         {
@@ -87,29 +116,75 @@ namespace osu_rx.osu.Memory
             return patternBytes;
         }
 
-        private IntPtr findMatch(byte?[] pattern, byte[] source, long length)
+        private UIntPtr findMatch(byte?[] pattern, byte[] buffer)
         {
             bool found;
-            for (int i = 0; i + pattern.Length <= length; i++)
+            for (int i = 0; i + pattern.Length <= buffer.Length; i++)
             {
                 found = true;
                 for (int j = 0; j < pattern.Length; j++)
                 {
-                    if (pattern[j] == null)
+                    if (pattern[j] == null || pattern[j] == buffer[i + j])
                         continue;
 
-                    if (source[i + j] != pattern[j])
-                    {
-                        found = false;
-                        break;
-                    }
+                    found = false;
+                    break;
                 }
 
                 if (found)
-                    return (IntPtr)i;
+                    return (UIntPtr)i;
             }
 
-            return IntPtr.Zero;
+            return UIntPtr.Zero;
         }
+    }
+
+    public class MemoryRegion
+    {
+        public UIntPtr BaseAddress { get; private set; }
+        public UIntPtr RegionSize { get; private set; }
+        public UIntPtr Start { get; private set; }
+        public UIntPtr End { get; private set; }
+        public MemoryState State { get; private set; }
+        public MemoryProtect Protect { get; private set; }
+        public MemoryType Type { get; private set; }
+
+        public MemoryRegion(MEMORY_BASIC_INFORMATION basicInformation)
+        {
+            BaseAddress = basicInformation.BaseAddress;
+            RegionSize = basicInformation.RegionSize;
+            State = basicInformation.State;
+            Protect = basicInformation.Protect;
+            Type = basicInformation.Type;
+        }
+    }
+
+    public enum MemoryState
+    {
+        MemCommit = 0x1000,
+        MemReserved = 0x2000,
+        MemFree = 0x10000
+    }
+
+    public enum MemoryType
+    {
+        MemPrivate = 0x20000,
+        MemMapped = 0x40000,
+        MemImage = 0x1000000
+    }
+
+    public enum MemoryProtect
+    {
+        PageNoAccess = 0x00000001,
+        PageReadonly = 0x00000002,
+        PageReadWrite = 0x00000004,
+        PageWriteCopy = 0x00000008,
+        PageExecute = 0x00000010,
+        PageExecuteRead = 0x00000020,
+        PageExecuteReadWrite = 0x00000040,
+        PageExecuteWriteCopy = 0x00000080,
+        PageGuard = 0x00000100,
+        PageNoCache = 0x00000200,
+        PageWriteCombine = 0x00000400
     }
 }

@@ -7,7 +7,7 @@ namespace osu_rx.osu.Memory.Objects
     {
         protected OsuProcess OsuProcess;
 
-        public virtual IntPtr BaseAddress { get; protected set; }
+        public virtual UIntPtr BaseAddress { get; protected set; }
 
         public OsuObject() => OsuProcess = DependencyContainer.Get<OsuProcess>();
     }

@@ -41,6 +41,6 @@ namespace osu_rx.osu.Memory.Objects
             set => OsuProcess.WriteMemory(BaseAddress + 0x450, BitConverter.GetBytes(value), sizeof(int));
         }
 
-        public OsuGameBase(IntPtr baseAddress) => BaseAddress = baseAddress;
+        public OsuGameBase(UIntPtr baseAddress) => BaseAddress = baseAddress;
     }
 }

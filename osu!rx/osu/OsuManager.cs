@@ -260,9 +260,9 @@ namespace osu_rx.osu
             {
                 Console.WriteLine("\nScanning for memory addresses...");
 
-                IntPtr osuGameBaseAddress = (IntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Signatures.GameBase.Pattern) + Signatures.GameBase.Offset);
-                IntPtr osuConfigManagerAddress = (IntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Signatures.ConfigManager.Pattern) + Signatures.ConfigManager.Offset);
-                IntPtr osuPlayerAddress = (IntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Signatures.Player.Pattern) + Signatures.Player.Offset);
+                UIntPtr osuGameBaseAddress = (UIntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Signatures.GameBase.Pattern) + Signatures.GameBase.Offset);
+                UIntPtr osuConfigManagerAddress = (UIntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Signatures.ConfigManager.Pattern) + Signatures.ConfigManager.Offset);
+                UIntPtr osuPlayerAddress = (UIntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Signatures.Player.Pattern) + Signatures.Player.Offset);
 
                 osuGameBase = new OsuGameBase(osuGameBaseAddress);
                 osuConfigManager = new OsuConfigManager(osuConfigManagerAddress);
@@ -271,8 +271,8 @@ namespace osu_rx.osu
             catch { }
             finally
             {
-                if (osuGameBase == null || osuConfigManager == null || osuGameBase.BaseAddress == IntPtr.Zero
-                    || osuConfigManager.BaseAddress == IntPtr.Zero || osuPlayer == null || osuPlayer.PointerToBaseAddress == IntPtr.Zero)
+                if (osuGameBase == null || osuConfigManager == null || osuGameBase.BaseAddress == UIntPtr.Zero
+                    || osuConfigManager.BaseAddress == UIntPtr.Zero || osuPlayer == null || osuPlayer.PointerToBaseAddress == UIntPtr.Zero)
                 {
                     Console.WriteLine("\nScanning failed! Using IPC fallback...");
                     UsingIPCFallback = true;
