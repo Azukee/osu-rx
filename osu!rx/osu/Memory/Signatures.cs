@@ -45,6 +45,15 @@
             Pattern = "FF 50 0C 8B D8 8B 15",
             Offset = 0x7
         };
+
+        public static readonly int[] AudioRateOffsets = new int[]
+        {
+            0x00034268,
+            0x8,
+            0x10,
+            0xC,
+            0x48
+        };
     }
 
     public class Signature

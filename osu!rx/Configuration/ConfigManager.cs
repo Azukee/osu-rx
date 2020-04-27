@@ -91,6 +91,18 @@ namespace osu_rx.Configuration
             set => config.SetValue<int>("HitscanMaxDistance", value);
         }
 
+        public bool EnableTimewarp
+        {
+            get => config.GetValue<bool>("EnableTimewarp", false);
+            set => config.SetValue<bool>("EnableTimewarp", value);
+        }
+
+        public double TimewarpRate
+        {
+            get => config.GetValue<double>("TimewarpRate", 1);
+            set => config.SetValue<double>("TimewarpRate", value);
+        }
+
         public ConfigManager() => config = new Config();
     }
 }

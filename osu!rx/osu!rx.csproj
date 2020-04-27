@@ -61,6 +61,7 @@
     <Compile Include="Configuration\Playstyles.cs" />
     <Compile Include="Core\HitScanResult.cs" />
     <Compile Include="Core\Relax.cs" />
+    <Compile Include="Core\Timewarp.cs" />
     <Compile Include="Dependencies\DependencyContainer.cs" />
     <Compile Include="osu\Memory\Objects\OsuPlayer.cs" />
     <Compile Include="osu\Memory\Signatures.cs" />

@@ -18,6 +18,16 @@ namespace osu_rx.osu.Memory.Objects
             get => new OsuRuleset((UIntPtr)OsuProcess.ReadInt32(BaseAddress + 0x60));
         }
 
+        public int AudioCheckTime
+        {
+            get => OsuProcess.ReadInt32(BaseAddress + 0x154);
+            set
+            {
+                OsuProcess.WriteMemory(BaseAddress + 0x154, BitConverter.GetBytes(value), sizeof(int));
+                OsuProcess.WriteMemory(BaseAddress + 0x158, BitConverter.GetBytes(value), sizeof(int));
+            }
+        }
+
         public OsuPlayer(UIntPtr pointerToBaseAddress) => PointerToBaseAddress = pointerToBaseAddress;
     }
 

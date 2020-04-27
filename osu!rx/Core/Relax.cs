@@ -45,11 +45,13 @@ namespace osu_rx.Core
             }
         }
 
+        private Timewarp timewarp;
         public Relax()
         {
             osuManager = DependencyContainer.Get<OsuManager>();
             configManager = DependencyContainer.Get<ConfigManager>();
             inputSimulator = new InputSimulator();
+            timewarp = new Timewarp();
         }
 
         public void Start()
@@ -87,6 +89,9 @@ namespace osu_rx.Core
             while (osuManager.CanPlay && index < currentBeatmap.HitObjects.Count && !shouldStop)
             {
                 Thread.Sleep(1);
+
+                if (configManager.EnableTimewarp)
+                    timewarp.Update(configManager.TimewarpRate, audioRate);
 
                 if (osuManager.IsPaused)
                 {
@@ -149,6 +154,9 @@ namespace osu_rx.Core
 
             releaseAllKeys();
 
+            if (configManager.EnableTimewarp)
+                timewarp.Reset();
+
             while (osuManager.CanPlay && index >= currentBeatmap.HitObjects.Count && !shouldStop)
                 Thread.Sleep(5);
 
@@ -161,6 +169,9 @@ namespace osu_rx.Core
                 updateAlternate();
                 currentHitTimings = randomizeHitObjectTimings(index, shouldAlternate, false);
                 lastRetryCount = osuManager.RetryCount;
+
+                if (configManager.EnableTimewarp)
+                    timewarp.Refresh();
             }
 
             void updateAlternate()

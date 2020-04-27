@@ -84,7 +84,8 @@ namespace osu_rx
             Console.WriteLine("---Settings---\n");
             Console.WriteLine("1. Relax settings");
             Console.WriteLine("2. HitScan settings");
-            Console.WriteLine("3. Other settings");
+            Console.WriteLine("3. Other settings\n");
+            Console.WriteLine("4. Experimental settings");
 
             Console.WriteLine("\nESC. Back to main menu");
 
@@ -98,6 +99,9 @@ namespace osu_rx
                     break;
                 case ConsoleKey.D3:
                     DrawOtherSettings();
+                    break;
+                case ConsoleKey.D4:
+                    DrawExperimentalSettings();
                     break;
                 case ConsoleKey.Escape:
                     DrawMainMenu();
@@ -299,6 +303,39 @@ namespace osu_rx
                     break;
                 default:
                     DrawOtherSettings();
+                    break;
+            }
+        }
+
+        private static void DrawExperimentalSettings()
+        {
+            Console.Clear();
+            Console.WriteLine("---Experimental Settings---\n");
+            Console.WriteLine($"1. Timewarp      | [{(configManager.EnableTimewarp ? "ENABLED" : "DISABLED")}]");
+            Console.WriteLine($"2. Timewarp rate | [{configManager.TimewarpRate}x]");
+
+            Console.WriteLine("\nESC. Back to settings");
+
+            switch (Console.ReadKey(true).Key)
+            {
+                case ConsoleKey.D1:
+                    configManager.EnableTimewarp = !configManager.EnableTimewarp;
+                    DrawExperimentalSettings();
+                    break;
+                case ConsoleKey.D2:
+                    Console.Clear();
+                    Console.Write("Enter new timewarp rate: ");
+                    if (double.TryParse(Console.ReadLine(), out double rate))
+                        configManager.TimewarpRate = rate;
+                    else
+                        goto case ConsoleKey.D2;
+                    DrawExperimentalSettings();
+                    break;
+                case ConsoleKey.Escape:
+                    DrawSettings();
+                    break;
+                default:
+                    DrawExperimentalSettings();
                     break;
             }
         }
