@@ -1,4 +1,4 @@
-﻿namespace osu_rx.osu
+﻿namespace osu_rx.osu.Memory.Objects
 {
     public enum OsuStates
     {

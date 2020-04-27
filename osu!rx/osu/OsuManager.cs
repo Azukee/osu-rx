@@ -1,4 +1,7 @@
-﻿using osu_rx.Helpers;
+﻿using osu_rx.Dependencies;
+using osu_rx.Helpers;
+using osu_rx.osu.Memory;
+using osu_rx.osu.Memory.Objects;
 using OsuParsers.Beatmaps;
 using OsuParsers.Database;
 using OsuParsers.Decoders;
@@ -21,13 +24,6 @@ namespace osu_rx.osu
         [DllImport("user32.dll")]
         private static extern bool GetCursorPos(out Point point);
 
-        private IntPtr threadStack0Address;
-        private IntPtr audioTimeAddress;
-        private IntPtr isAudioPlayingAddress;
-        private IntPtr gameStateAddress;
-        private IntPtr modsAddress;
-        private IntPtr replayModeAddress;
-
         private object interProcessOsu;
         private MethodInfo bulkClientDataMethod;
 
@@ -46,7 +42,7 @@ namespace osu_rx.osu
             get
             {
                 if (!UsingIPCFallback)
-                    return OsuProcess.ReadInt32(audioTimeAddress);
+                    return OsuProcess.ReadInt32(timeAddress);
 
                 var data = bulkClientDataMethod.Invoke(interProcessOsu, null);
                 return (int)data.GetType().GetField("MenuTime").GetValue(data);
@@ -69,7 +65,7 @@ namespace osu_rx.osu
             get
             {
                 if (!UsingIPCFallback)
-                    return !OsuProcess.ReadBool(isAudioPlayingAddress);
+                    return !OsuProcess.ReadBool(timeAddress + Signatures.IsAudioPlayingOffset);
 
                 var data = bulkClientDataMethod.Invoke(interProcessOsu, null);
                 return !(bool)data.GetType().GetField("AudioPlaying").GetValue(data);
@@ -80,15 +76,8 @@ namespace osu_rx.osu
         {
             get
             {
-                if (!UsingIPCFallback)
-                {
-                    OsuProcess.Process.Refresh();
-                    return OsuProcess.Process.MainWindowTitle.Contains('-');
-                }
-
-                //TODO: remove in next release
-                var data = bulkClientDataMethod.Invoke(interProcessOsu, null);
-                return (bool)data.GetType().GetField("LPlayerLoaded").GetValue(data);
+                OsuProcess.Process.Refresh();
+                return OsuProcess.Process.MainWindowTitle.Contains('-');
             }
         }
 
@@ -142,7 +131,7 @@ namespace osu_rx.osu
             get
             {
                 if (!UsingIPCFallback)
-                    return (OsuStates)OsuProcess.ReadInt32(gameStateAddress);
+                    return (OsuStates)OsuProcess.ReadInt32(stateAddress);
 
                 var data = bulkClientDataMethod.Invoke(interProcessOsu, null);
                 return (OsuStates)data.GetType().GetField("Mode").GetValue(data);
@@ -164,21 +153,19 @@ namespace osu_rx.osu
             get
             {
                 if (!UsingIPCFallback)
-                {
-                    IntPtr cursorPositionAddress = threadStack0Address;
-                    foreach (var offset in Constants.CursorPositionXOffsetChain)
-                        cursorPositionAddress = (IntPtr)OsuProcess.ReadInt32(cursorPositionAddress + offset);
-
-                    int x = OsuProcess.ReadInt32(cursorPositionAddress + Constants.CursorPositionXOffset);
-                    int y = OsuProcess.ReadInt32(cursorPositionAddress + Constants.CursorPositionYOffset);
-
-                    return new Vector2(x, y) - OsuWindow.PlayfieldPosition;
-                }
+                    return Player.Ruleset.MousePosition - OsuWindow.PlayfieldPosition;
 
                 GetCursorPos(out var pos);
                 return pos.ToVector2() - (OsuWindow.WindowPosition + OsuWindow.PlayfieldPosition);
             }
         }
+
+        public int RetryCount
+        {
+            get => OsuProcess.ReadInt32(retryCountAddress);
+        }
+
+        public OsuPlayer Player { get; private set; }
 
         public string PathToOsu { get; private set; }
 
@@ -226,6 +213,7 @@ namespace osu_rx.osu
             osuProcess.EnableRaisingEvents = true;
             osuProcess.Exited += (o, e) => Environment.Exit(0);
             OsuProcess = new OsuProcess(osuProcess);
+            DependencyContainer.Cache(OsuProcess);
 
             OsuWindow = new OsuWindow(osuProcess.MainWindowHandle);
 
@@ -264,32 +252,39 @@ namespace osu_rx.osu
                 SongsPath = $@"{PathToOsu}\Songs";
         }
 
+        private UIntPtr timeAddress;
+        private UIntPtr modsAddress;
+        private UIntPtr stateAddress;
+        private UIntPtr replayModeAddress;
+        private UIntPtr retryCountAddress;
         private void scanMemory()
         {
             try
             {
-                Console.Write("\nScanning for memory addresses.");
+                Console.WriteLine("\nScanning for memory addresses (this may take a while)...");
 
-                threadStack0Address = OsuProcess.GetThreadStack0Address();
-
-                audioTimeAddress = (IntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Constants.AudioTimePattern) + Constants.AudioTimeOffset);
-                isAudioPlayingAddress = audioTimeAddress + Constants.IsAudioPlayingOffset;
-
-                Console.Write('.');
-                gameStateAddress = (IntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Constants.GameStatePattern) + Constants.GameStateOffset);
-
-                Console.Write('.');
-                modsAddress = (IntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Constants.ModsPattern) + Constants.ModsOffset);
-
-                Console.WriteLine('.');
-                replayModeAddress = (IntPtr)OsuProcess.ReadInt32(OsuProcess.FindPattern(Constants.ReplayModePattern) + Constants.ReplayModeOffset);
+                //TODO: gooood this is dirty af
+                if (OsuProcess.FindPattern(Signatures.Time.Pattern, out UIntPtr timeResult) 
+                    && OsuProcess.FindPattern(Signatures.Mods.Pattern, out UIntPtr modsResult)
+                    && OsuProcess.FindPattern(Signatures.State.Pattern, out UIntPtr stateResult) 
+                    && OsuProcess.FindPattern(Signatures.ReplayMode.Pattern, out UIntPtr replayModeResult)
+                    && OsuProcess.FindPattern(Signatures.RetryCount.Pattern, out UIntPtr retryCountResult)
+                    && OsuProcess.FindPattern(Signatures.Player.Pattern, out UIntPtr playerResult))
+                {
+                    timeAddress = (UIntPtr)OsuProcess.ReadInt32(timeResult + Signatures.Time.Offset);
+                    modsAddress = (UIntPtr)OsuProcess.ReadInt32(modsResult + Signatures.Mods.Offset);
+                    stateAddress = (UIntPtr)OsuProcess.ReadInt32(stateResult + Signatures.State.Offset);
+                    replayModeAddress = (UIntPtr)OsuProcess.ReadInt32(replayModeResult + Signatures.ReplayMode.Offset);
+                    retryCountAddress = (UIntPtr)OsuProcess.ReadInt32(retryCountResult + Signatures.RetryCount.Offset);
+                    Player = new OsuPlayer((UIntPtr)OsuProcess.ReadInt32(playerResult + Signatures.Player.Offset));
+                }
             }
             catch { }
             finally
             {
-                if (threadStack0Address == IntPtr.Zero || audioTimeAddress == IntPtr.Zero
-                    || isAudioPlayingAddress == IntPtr.Zero || gameStateAddress == IntPtr.Zero
-                    || modsAddress == IntPtr.Zero || replayModeAddress == IntPtr.Zero)
+                if (timeAddress == UIntPtr.Zero || modsAddress == UIntPtr.Zero || stateAddress == UIntPtr.Zero 
+                    || replayModeAddress == UIntPtr.Zero || retryCountAddress == UIntPtr.Zero || Player == null
+                    || Player.PointerToBaseAddress == UIntPtr.Zero)
                 {
                     Console.WriteLine("\nScanning failed! Using IPC fallback...");
                     UsingIPCFallback = true;
