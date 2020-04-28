@@ -78,7 +78,7 @@ namespace osu_rx.Core
             hitWindow100 = osuManager.HitWindow100(currentBeatmap.DifficultySection.OverallDifficulty);
             hitWindow300 = osuManager.HitWindow300(currentBeatmap.DifficultySection.OverallDifficulty);
 
-            int index, lastRetryCount, hitTime = 0;
+            int index, lastTime, hitTime = 0;
             bool isHit, shouldStartAlternating, shouldAlternate;
             VirtualKeyCode currentKey;
             HitObject currentHitObject;
@@ -104,12 +104,14 @@ namespace osu_rx.Core
                     continue;
                 }
 
-                if (osuManager.RetryCount != lastRetryCount)
+                if (lastTime > osuManager.CurrentTime)
                 {
                     reset(true);
                     releaseAllKeys();
                     continue;
                 }
+                else
+                    lastTime = osuManager.CurrentTime;
 
                 int currentTime = osuManager.CurrentTime + audioOffset;
                 if (currentTime >= currentHitObject.StartTime - hitWindow50)
@@ -168,7 +170,7 @@ namespace osu_rx.Core
                 currentHitObject = currentBeatmap.HitObjects[index];
                 updateAlternate();
                 currentHitTimings = randomizeHitObjectTimings(index, shouldAlternate, false);
-                lastRetryCount = osuManager.RetryCount;
+                lastTime = int.MinValue;
 
                 if (configManager.EnableTimewarp)
                     timewarp.Refresh();

@@ -28,12 +28,6 @@
             Offset = 0x6
         };
 
-        public static readonly Signature RetryCount = new Signature
-        {
-            Pattern = "74 08 FF 05 ?? ?? ?? ?? EB 08 33 D2",
-            Offset = 0x4
-        };
-
         public static readonly Signature ConfigManager = new Signature
         {
             Pattern = "8B 45 DC 8B 0D",

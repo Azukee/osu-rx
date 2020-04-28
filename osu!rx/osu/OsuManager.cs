@@ -160,11 +160,6 @@ namespace osu_rx.osu
             }
         }
 
-        public int RetryCount
-        {
-            get => OsuProcess.ReadInt32(retryCountAddress);
-        }
-
         public OsuPlayer Player { get; private set; }
 
         public string PathToOsu { get; private set; }
@@ -256,7 +251,6 @@ namespace osu_rx.osu
         private UIntPtr modsAddress;
         private UIntPtr stateAddress;
         private UIntPtr replayModeAddress;
-        private UIntPtr retryCountAddress;
         private void scanMemory()
         {
             try
@@ -268,14 +262,12 @@ namespace osu_rx.osu
                     && OsuProcess.FindPattern(Signatures.Mods.Pattern, out UIntPtr modsResult)
                     && OsuProcess.FindPattern(Signatures.State.Pattern, out UIntPtr stateResult) 
                     && OsuProcess.FindPattern(Signatures.ReplayMode.Pattern, out UIntPtr replayModeResult)
-                    && OsuProcess.FindPattern(Signatures.RetryCount.Pattern, out UIntPtr retryCountResult)
                     && OsuProcess.FindPattern(Signatures.Player.Pattern, out UIntPtr playerResult))
                 {
                     timeAddress = (UIntPtr)OsuProcess.ReadInt32(timeResult + Signatures.Time.Offset);
                     modsAddress = (UIntPtr)OsuProcess.ReadInt32(modsResult + Signatures.Mods.Offset);
                     stateAddress = (UIntPtr)OsuProcess.ReadInt32(stateResult + Signatures.State.Offset);
                     replayModeAddress = (UIntPtr)OsuProcess.ReadInt32(replayModeResult + Signatures.ReplayMode.Offset);
-                    retryCountAddress = (UIntPtr)OsuProcess.ReadInt32(retryCountResult + Signatures.RetryCount.Offset);
                     Player = new OsuPlayer((UIntPtr)OsuProcess.ReadInt32(playerResult + Signatures.Player.Offset));
                 }
             }
@@ -283,8 +275,7 @@ namespace osu_rx.osu
             finally
             {
                 if (timeAddress == UIntPtr.Zero || modsAddress == UIntPtr.Zero || stateAddress == UIntPtr.Zero 
-                    || replayModeAddress == UIntPtr.Zero || retryCountAddress == UIntPtr.Zero || Player == null
-                    || Player.PointerToBaseAddress == UIntPtr.Zero)
+                    || replayModeAddress == UIntPtr.Zero || Player == null || Player.PointerToBaseAddress == UIntPtr.Zero)
                 {
                     Console.WriteLine("\nScanning failed! Using IPC fallback...");
                     UsingIPCFallback = true;
