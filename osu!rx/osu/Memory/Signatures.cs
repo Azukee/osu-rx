@@ -4,16 +4,16 @@
     {
         public static readonly Signature Time = new Signature
         {
-            Pattern = "7E 55 8B 76 10 DB 05",
-            Offset = 0x7
+            Pattern = "D9 58 2C 8B 3D ?? ?? ?? ?? 8B 1D",
+            Offset = 0xB
         };
 
         public const int IsAudioPlayingOffset = 0x30;
 
         public static readonly Signature Mods = new Signature
         {
-            Pattern = "85 DB 75 0A 81 25",
-            Offset = 0x6
+            Pattern = "53 8B F1 A1 ?? ?? ?? ?? 25 ?? ?? ?? ?? 85 C0",
+            Offset = 0x4
         };
 
         public static readonly Signature State = new Signature
@@ -26,12 +26,6 @@
         {
             Pattern = "85 C0 75 0D 80 3D",
             Offset = 0x6
-        };
-
-        public static readonly Signature RetryCount = new Signature
-        {
-            Pattern = "74 08 FF 05 ?? ?? ?? ?? EB 08 33 D2",
-            Offset = 0x4
         };
 
         public static readonly Signature ConfigManager = new Signature
