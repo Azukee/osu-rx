@@ -49,12 +49,13 @@ namespace osu_rx.osu
             }
         }
 
+        // Keep this function here to keep the program IPC-Safe
         public Mods CurrentMods
         {
-            get
+            get 
             {
                 if (!UsingIPCFallback)
-                    return (Mods)OsuProcess.ReadInt32(modsAddress);
+                    return Player.HitObjectManager.CurrentMods;
 
                 return Mods.None;
             }
@@ -259,13 +260,11 @@ namespace osu_rx.osu
 
                 //TODO: gooood this is dirty af
                 if (OsuProcess.FindPattern(Signatures.Time.Pattern, out UIntPtr timeResult) 
-                    && OsuProcess.FindPattern(Signatures.Mods.Pattern, out UIntPtr modsResult)
                     && OsuProcess.FindPattern(Signatures.State.Pattern, out UIntPtr stateResult) 
                     && OsuProcess.FindPattern(Signatures.ReplayMode.Pattern, out UIntPtr replayModeResult)
                     && OsuProcess.FindPattern(Signatures.Player.Pattern, out UIntPtr playerResult))
                 {
                     timeAddress = (UIntPtr)OsuProcess.ReadInt32(timeResult + Signatures.Time.Offset);
-                    modsAddress = (UIntPtr)OsuProcess.ReadInt32(modsResult + Signatures.Mods.Offset);
                     stateAddress = (UIntPtr)OsuProcess.ReadInt32(stateResult + Signatures.State.Offset);
                     replayModeAddress = (UIntPtr)OsuProcess.ReadInt32(replayModeResult + Signatures.ReplayMode.Offset);
                     Player = new OsuPlayer((UIntPtr)OsuProcess.ReadInt32(playerResult + Signatures.Player.Offset));
@@ -274,7 +273,7 @@ namespace osu_rx.osu
             catch { }
             finally
             {
-                if (timeAddress == UIntPtr.Zero || modsAddress == UIntPtr.Zero || stateAddress == UIntPtr.Zero 
+                if (timeAddress == UIntPtr.Zero || stateAddress == UIntPtr.Zero 
                     || replayModeAddress == UIntPtr.Zero || Player == null || Player.PointerToBaseAddress == UIntPtr.Zero)
                 {
                     Console.WriteLine("\nScanning failed! Using IPC fallback...");

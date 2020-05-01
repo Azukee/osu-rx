@@ -18,6 +18,11 @@ namespace osu_rx.osu.Memory.Objects
             get => new OsuRuleset((UIntPtr)OsuProcess.ReadInt32(BaseAddress + 0x60));
         }
 
+        public OsuHitObjectManager HitObjectManager
+        {
+            get => new OsuHitObjectManager((UIntPtr)OsuProcess.ReadInt32(BaseAddress + 0x40));
+        }
+
         public int AudioCheckTime
         {
             get => OsuProcess.ReadInt32(BaseAddress + 0x154);
