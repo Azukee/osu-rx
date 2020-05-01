@@ -249,7 +249,6 @@ namespace osu_rx.osu
         }
 
         private UIntPtr timeAddress;
-        private UIntPtr modsAddress;
         private UIntPtr stateAddress;
         private UIntPtr replayModeAddress;
         private void scanMemory()

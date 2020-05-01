@@ -10,12 +10,6 @@
 
         public const int IsAudioPlayingOffset = 0x30;
 
-        public static readonly Signature Mods = new Signature
-        {
-            Pattern = "53 8B F1 A1 ?? ?? ?? ?? 25 ?? ?? ?? ?? 85 C0",
-            Offset = 0x4
-        };
-
         public static readonly Signature State = new Signature
         {
             Pattern = "8D 45 BC 89 46 0C 83 3D",
