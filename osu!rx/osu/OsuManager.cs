@@ -52,7 +52,7 @@ namespace osu_rx.osu
         // Keep this function here to keep the program IPC-Safe
         public Mods CurrentMods
         {
-            get 
+            get
             {
                 if (!UsingIPCFallback)
                     return Player.HitObjectManager.CurrentMods;
@@ -272,8 +272,8 @@ namespace osu_rx.osu
             catch { }
             finally
             {
-                if (timeAddress == UIntPtr.Zero || stateAddress == UIntPtr.Zero 
-                    || replayModeAddress == UIntPtr.Zero || Player == null || Player.PointerToBaseAddress == UIntPtr.Zero)
+                if (timeAddress == UIntPtr.Zero || stateAddress == UIntPtr.Zero || replayModeAddress == UIntPtr.Zero 
+                    || Player == null || Player.PointerToBaseAddress == UIntPtr.Zero)
                 {
                     Console.WriteLine("\nScanning failed! Using IPC fallback...");
                     UsingIPCFallback = true;
