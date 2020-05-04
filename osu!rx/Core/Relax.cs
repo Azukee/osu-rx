@@ -41,7 +41,9 @@ namespace osu_rx.Core
             get
             {
                 float size = (float)(osuManager.OsuWindow.PlayfieldSize.X / 8f * (1f - 0.7f * osuManager.AdjustDifficulty(currentBeatmap.DifficultySection.CircleSize)));
-                return size / 2f / osuManager.OsuWindow.PlayfieldRatio * 1.00041f;
+                float radius = size / 2f / osuManager.OsuWindow.PlayfieldRatio * 1.00041f;
+
+                return radius;
             }
         }
 
@@ -116,30 +118,41 @@ namespace osu_rx.Core
                 int currentTime = osuManager.CurrentTime + audioOffset;
                 if (currentTime >= currentHitObject.StartTime - hitWindow50)
                 {
-                    var hitScanResult = getHitScanResult(index);
-                    if (!isHit && ((currentTime >= currentHitObject.StartTime + currentHitTimings.StartOffset && hitScanResult == HitScanResult.CanHit) || hitScanResult == HitScanResult.ShouldHit))
+                    if (!isHit)
                     {
-                        isHit = true;
-                        hitTime = currentTime;
-
-                        switch (playStyle)
+                        var hitScanResult = getHitScanResult(index);
+                        switch (hitScanResult)
                         {
-                            case PlayStyles.MouseOnly when currentKey == primaryKey:
-                                inputSimulator.Mouse.LeftButtonDown();
+                            case HitScanResult.CanHit when currentTime >= currentHitObject.StartTime + currentHitTimings.StartOffset:
+                            case HitScanResult.ShouldHit:
+                                {
+                                    isHit = true;
+                                    hitTime = currentTime;
+
+                                    switch (playStyle)
+                                    {
+                                        case PlayStyles.MouseOnly when currentKey == primaryKey:
+                                            inputSimulator.Mouse.LeftButtonDown();
+                                            break;
+                                        case PlayStyles.MouseOnly:
+                                            inputSimulator.Mouse.RightButtonDown();
+                                            break;
+                                        case PlayStyles.TapX when !shouldAlternate && !shouldStartAlternating:
+                                            inputSimulator.Mouse.LeftButtonDown();
+                                            currentKey = primaryKey;
+                                            break;
+                                        default:
+                                            inputSimulator.Keyboard.KeyDown(currentKey);
+                                            break;
+                                    }
+                                }
                                 break;
-                            case PlayStyles.MouseOnly:
-                                inputSimulator.Mouse.RightButtonDown();
-                                break;
-                            case PlayStyles.TapX when !shouldAlternate && !shouldStartAlternating:
-                                inputSimulator.Mouse.LeftButtonDown();
-                                currentKey = primaryKey;
-                                break;
-                            default:
-                                inputSimulator.Keyboard.KeyDown(currentKey);
+                            case HitScanResult.MoveToNextObject:
+                                moveToNextObject();
                                 break;
                         }
                     }
-                    else if (isHit && currentTime >= (currentHitObject is HitCircle ? hitTime : currentHitObject.EndTime) + currentHitTimings.HoldTime)
+                    else if (currentTime >= (currentHitObject is HitCircle ? hitTime : currentHitObject.EndTime) + currentHitTimings.HoldTime)
                     {
                         moveToNextObject();
 
@@ -149,8 +162,6 @@ namespace osu_rx.Core
                         isHit = false;
                         releaseAllKeys();
                     }
-                    else if (!isHit && hitScanResult == HitScanResult.Wait && currentTime >= (currentHitObject is HitCircle ? currentHitObject.StartTime : currentHitObject.EndTime + hitWindow50))
-                        moveToNextObject();
                 }
             }
 
@@ -182,7 +193,7 @@ namespace osu_rx.Core
                 var nextHitObject = index + 1 < currentBeatmap.HitObjects.Count ? currentBeatmap.HitObjects[index + 1] : null;
 
                 // This is to fix possible divide by zero exception's
-                
+
                 shouldStartAlternating = nextHitObject != null ? 60000 / (nextHitObject.StartTime - currentHitObject.EndTime) >= maxBPM : false;
                 shouldAlternate = lastHitObject != null ? 60000 / (currentHitObject.StartTime - lastHitObject.EndTime) >= maxBPM : false;
                 if (shouldAlternate || playStyle == PlayStyles.Alternate)
@@ -227,7 +238,7 @@ namespace osu_rx.Core
         }
 
         private int lastHitScanIndex;
-        private Vector2 lastOnNotePosition = Vector2.Zero;
+        private Vector2? lastOnNotePosition = null;
         private HitScanResult getHitScanResult(int index)
         {
             var hitObject = currentBeatmap.HitObjects[index];
@@ -238,52 +249,40 @@ namespace osu_rx.Core
             if (lastHitScanIndex != index)
             {
                 lastHitScanIndex = index;
-                lastOnNotePosition = Vector2.Zero;
+                lastOnNotePosition = null;
             }
 
-            Vector2 hitObjectPosition()
+            //TODO: implement slider path support
+            bool isSliding = hitObject is Slider && osuManager.CurrentTime > hitObject.StartTime;
+            float radius = isSliding ? hitObjectRadius * 2.4f : hitObjectRadius;
+
+            float distanceToObject = Vector2.Distance(osuManager.CursorPosition, hitObjectPosition(hitObject) * osuManager.OsuWindow.PlayfieldRatio);
+            float distanceToLastPos = Vector2.Distance(osuManager.CursorPosition, lastOnNotePosition ?? Vector2.Zero);
+
+            if (osuManager.CurrentTime > hitObject.EndTime + hitWindow50)
             {
-                float y = osuManager.CurrentMods.HasFlag(Mods.HardRock) ? 384 - hitObject.Position.Y : hitObject.Position.Y;
+                //TODO: don't click if cursor is currently on other note
+                if (distanceToObject <= radius + hitScanRadiusAdditional)
+                    return HitScanResult.ShouldHit;
 
-                return new Vector2(hitObject.Position.X, y);
+                return HitScanResult.MoveToNextObject;
             }
-
-            float distanceToObject = Vector2.Distance(osuManager.CursorPosition, hitObjectPosition() * osuManager.OsuWindow.PlayfieldRatio);
-            float distanceToLastPos = Vector2.Distance(osuManager.CursorPosition, lastOnNotePosition);
 
             if (hitScanPredictionEnabled)
             {
-                //checking if cursor is almost outside or outside of object's radius
-                if (distanceToObject > hitObjectRadius * hitScanRadiusMultiplier)
+                if (distanceToObject > radius * hitScanRadiusMultiplier)
                 {
-                    if (lastOnNotePosition != Vector2.Zero && distanceToLastPos <= hitScanMaxDistance)
-                        return HitScanResult.ShouldHit; //force hit if cursor didn't traveled too much distance
-
-                    if (hitObject is Slider && osuManager.CurrentTime > hitObject.StartTime + hitWindow50)
-                        return HitScanResult.ShouldHit; //force hit if starttime has ended so we can at least sliderbreak
-
-
-                    //TODO: make this work so it only hits if cursor wasn't on note ever
-                    //TODO: relax algo probably doesn't even wait enough for this to work
-                    //if (lastOnNotePosition != Vector2.Zero && distanceToObject <= hitObjectRadius + hitScanRadiusAdditional)
-                    //    return HitScanResult.CanHit; //telling relax that it can hit if cursor is somewhere near object's radius
-
-                    if (distanceToObject <= hitObjectRadius + hitScanRadiusAdditional)
-                        return HitScanResult.CanHit; //telling relax that it can hit if cursor is somewhere near object's radius
-
-                    return HitScanResult.Wait;
+                    if (lastOnNotePosition != null && distanceToLastPos <= hitScanMaxDistance)
+                        return HitScanResult.ShouldHit;
                 }
-
-                lastOnNotePosition = osuManager.CursorPosition;
-                return HitScanResult.CanHit; //telling relax that it can hit if cursor is inside object's radius
+                else
+                    lastOnNotePosition = osuManager.CursorPosition;
             }
-            else //use more simple algorithm if prediction is disabled
-            {
-                if (distanceToObject <= hitObjectRadius)
-                    return HitScanResult.CanHit;
 
-                return HitScanResult.Wait;
-            }
+            if (distanceToObject <= radius)
+                return HitScanResult.CanHit;
+
+            return HitScanResult.Wait;
         }
 
         private (int StartOffset, int HoldTime) randomizeHitObjectTimings(int index, bool alternating, bool allowHit100)
@@ -308,6 +307,13 @@ namespace osu_rx.Core
                 result.HoldTime = random.Next(hitWindow300, hitWindow300 * 2);
 
             return result;
+        }
+
+        private Vector2 hitObjectPosition(HitObject hitObject)
+        {
+            float y = osuManager.CurrentMods.HasFlag(Mods.HardRock) ? 384 - hitObject.Position.Y : hitObject.Position.Y;
+
+            return new Vector2(hitObject.Position.X, y);
         }
     }
 }
