@@ -43,7 +43,7 @@ namespace osu_rx.Core
         public void Start()
         {
             shouldStop = false;
-            currentBeatmap = osuManager.CurrentBeatmap;
+            currentBeatmap = postProcessBeatmap(osuManager.CurrentBeatmap);
 
             hitWindow50 = osuManager.HitWindow50(currentBeatmap.DifficultySection.OverallDifficulty);
             hitWindow100 = osuManager.HitWindow100(currentBeatmap.DifficultySection.OverallDifficulty);
@@ -187,6 +187,32 @@ namespace osu_rx.Core
 
         public void Stop() => shouldStop = true;
 
+        private Beatmap postProcessBeatmap(Beatmap beatmap)
+        {
+            foreach (var hitObject in beatmap.HitObjects)
+            {
+                if (osuManager.CurrentMods.HasFlag(Mods.HardRock))
+                    hitObject.Position = flipPosition(hitObject.Position);
+
+                if (hitObject is Slider slider)
+                {
+                    for (int i = 0; i < slider.SliderPoints.Count; i++)
+                    {
+                        if (osuManager.CurrentMods.HasFlag(Mods.HardRock))
+                            slider.SliderPoints[i] = flipPosition(slider.SliderPoints[i]);
+
+                        slider.SliderPoints[i] -= slider.Position;
+                    }
+
+                    slider.SliderPoints.Insert(0, Vector2.Zero);
+                }
+            }
+
+            //TODO: stacking
+
+            return beatmap;
+        }
+
         private void releaseAllKeys()
         {
             inputSimulator.Keyboard.KeyUp(configManager.PrimaryKey);
@@ -223,21 +249,32 @@ namespace osu_rx.Core
                 lastOnNotePosition = null;
             }
 
-            //TODO: implement slider path support
+            Vector2 hitObjectPosition = hitObject.Position;
+
             bool isSliding = hitObject is Slider && osuManager.CurrentTime > hitObject.StartTime;
             float hitObjectRadius = osuManager.HitObjectRadius(currentBeatmap.DifficultySection.CircleSize);
             hitObjectRadius *= isSliding ? 2.4f : 1;
 
-            float distanceToObject = Vector2.Distance(osuManager.CursorPosition, hitObjectPosition(hitObject) * osuManager.OsuWindow.PlayfieldRatio);
+            if (isSliding)
+            {
+                float sliderDuration = hitObject.EndTime - hitObject.StartTime;
+                float currentSliderTime = osuManager.CurrentTime - hitObject.StartTime;
+                float progress = (currentSliderTime / sliderDuration).Clamp(0, 1) * (hitObject as Slider).Repeats % 1;
+
+                if (progress * (hitObject as Slider).Repeats % 2 == 1)
+                    progress = 1 - progress;
+
+                hitObjectPosition += new SliderPath(hitObject as Slider).PositionAt(progress);
+            }
+
+            float distanceToObject = Vector2.Distance(osuManager.CursorPosition, hitObjectPosition * osuManager.OsuWindow.PlayfieldRatio);
             float distanceToLastPos = Vector2.Distance(osuManager.CursorPosition, lastOnNotePosition ?? Vector2.Zero);
 
             if (osuManager.CurrentTime > hitObject.EndTime + hitWindow50)
             {
                 if (configManager.HitScanMissAfterHitWindow50)
-                {
                     if (distanceToObject <= hitObjectRadius + configManager.HitScanRadiusAdditional && !intersectsWithOtherHitObjects(index + 1))
                         return HitScanResult.ShouldHit;
-                }
 
                 return HitScanResult.MoveToNextObject;
             }
@@ -285,12 +322,7 @@ namespace osu_rx.Core
             return result;
         }
 
-        private Vector2 hitObjectPosition(HitObject hitObject)
-        {
-            float y = osuManager.CurrentMods.HasFlag(Mods.HardRock) ? 384 - hitObject.Position.Y : hitObject.Position.Y;
-
-            return new Vector2(hitObject.Position.X, y);
-        }
+        private Vector2 flipPosition(Vector2 position) => new Vector2(position.X, 384 - position.Y);
 
         private bool intersectsWithOtherHitObjects(int startIndex)
         {

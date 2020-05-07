@@ -161,9 +161,14 @@ namespace osu_rx.osu
             }
         }
 
+        public float HitObjectScalingFactor(float circleSize)
+        {
+            return 1f - 0.7f * (float)AdjustDifficulty(circleSize);
+        }
+
         public float HitObjectRadius(float circleSize)
         {
-            float size = (float)(OsuWindow.PlayfieldSize.X / 8f * (1f - 0.7f * AdjustDifficulty(circleSize)));
+            float size = (float)(OsuWindow.PlayfieldSize.X / 8f * HitObjectScalingFactor(circleSize));
             float radius = size / 2f / OsuWindow.PlayfieldRatio * 1.00041f;
 
             return radius;
