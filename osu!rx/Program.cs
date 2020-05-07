@@ -198,11 +198,13 @@ namespace osu_rx
         {
             Console.Clear();
             Console.WriteLine("---HitScan Settings---\n");
-            Console.WriteLine($"1. HitScan                   | [{(configManager.EnableHitScan ? "ENABLED" : "DISABLED")}]");
-            Console.WriteLine($"2. HitScan prediction        | [{(configManager.EnableHitScanPrediction ? "ENABLED" : "DISABLED")}]");
-            Console.WriteLine($"3. HitScan radius multiplier | [{configManager.HitScanRadiusMultiplier}]");
-            Console.WriteLine($"4. HitScan radius additional | [{configManager.HitScanRadiusAdditional}]");
-            Console.WriteLine($"5. HitScan max distance      | [{configManager.HitScanMaxDistance}]");
+            Console.WriteLine($"1. HitScan                | [{(configManager.EnableHitScan ? "ENABLED" : "DISABLED")}]");
+            Console.WriteLine($"2. Prediction             | [{(configManager.EnableHitScanPrediction ? "ENABLED" : "DISABLED")}]");
+            Console.WriteLine($"3. Radius multiplier      | [{configManager.HitScanRadiusMultiplier}]");
+            Console.WriteLine($"4. Radius additional      | [{configManager.HitScanRadiusAdditional}]");
+            Console.WriteLine($"5. Max distance           | [{configManager.HitScanMaxDistance}]");
+            Console.WriteLine($"6. Miss chance            | [{configManager.HitScanMissChance}%]");
+            Console.WriteLine($"7. Miss after HitWindow50 | [{(configManager.HitScanMissAfterHitWindow50 ? "ENABLED" : "DISABLED")}]");
 
             Console.WriteLine("\nESC. Back to settings");
 
@@ -241,6 +243,19 @@ namespace osu_rx
                         configManager.HitScanMaxDistance = maxDistance;
                     else
                         goto case ConsoleKey.D5;
+                    DrawHitScanSettings();
+                    break;
+                case ConsoleKey.D6:
+                    Console.Clear();
+                    Console.Write("Enter new miss chance: ");
+                    if (int.TryParse(Console.ReadLine(), out int missChance))
+                        configManager.HitScanMissChance = missChance;
+                    else
+                        goto case ConsoleKey.D6;
+                    DrawHitScanSettings();
+                    break;
+                case ConsoleKey.D7:
+                    configManager.HitScanMissAfterHitWindow50 = !configManager.HitScanMissAfterHitWindow50;
                     DrawHitScanSettings();
                     break;
                 case ConsoleKey.Escape:
