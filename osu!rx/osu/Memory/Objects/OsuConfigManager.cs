@@ -25,7 +25,7 @@ namespace osu_rx.osu.Memory.Objects
             }
         }
 
-        public bool Fullscreen 
+        public bool Fullscreen
         {
             get
             {

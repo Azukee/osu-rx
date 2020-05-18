@@ -5,10 +5,7 @@ using osu_rx.osu;
 using OsuParsers.Beatmaps;
 using OsuParsers.Beatmaps.Objects;
 using OsuParsers.Enums;
-using OsuParsers.Enums.Beatmaps;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Numerics;
 using System.Threading;
 using WindowsInput;
@@ -43,7 +40,7 @@ namespace osu_rx.Core
         public void Start()
         {
             shouldStop = false;
-            currentBeatmap = postProcessBeatmap(osuManager.CurrentBeatmap);
+            currentBeatmap = postProcessBeatmap(osuManager.Player.Beatmap);
 
             hitWindow50 = osuManager.HitWindow50(currentBeatmap.DifficultySection.OverallDifficulty);
             hitWindow100 = osuManager.HitWindow100(currentBeatmap.DifficultySection.OverallDifficulty);
@@ -190,25 +187,9 @@ namespace osu_rx.Core
         private Beatmap postProcessBeatmap(Beatmap beatmap)
         {
             foreach (var hitObject in beatmap.HitObjects)
-            {
-                if (osuManager.CurrentMods.HasFlag(Mods.HardRock))
-                    hitObject.Position = flipPosition(hitObject.Position);
-
                 if (hitObject is Slider slider)
-                {
                     for (int i = 0; i < slider.SliderPoints.Count; i++)
-                    {
-                        if (osuManager.CurrentMods.HasFlag(Mods.HardRock))
-                            slider.SliderPoints[i] = flipPosition(slider.SliderPoints[i]);
-
                         slider.SliderPoints[i] -= slider.Position;
-                    }
-
-                    slider.SliderPoints.Insert(0, Vector2.Zero);
-                }
-            }
-
-            //TODO: stacking
 
             return beatmap;
         }
@@ -234,8 +215,9 @@ namespace osu_rx.Core
             }
         }
 
-        private int lastHitScanIndex;
+        private int lastHitScanIndex = -1;
         private Vector2? lastOnNotePosition = null;
+        private SliderPath lastSliderPath = null;
         private HitScanResult getHitScanResult(int index)
         {
             var hitObject = currentBeatmap.HitObjects[index];
@@ -247,24 +229,20 @@ namespace osu_rx.Core
             {
                 lastHitScanIndex = index;
                 lastOnNotePosition = null;
+                lastSliderPath = hitObject is Slider slider ? new SliderPath(slider) : null;
             }
 
+            float hitObjectRadius = osuManager.HitObjectRadius(currentBeatmap.DifficultySection.CircleSize);
             Vector2 hitObjectPosition = hitObject.Position;
 
-            bool isSliding = hitObject is Slider && osuManager.CurrentTime > hitObject.StartTime;
-            float hitObjectRadius = osuManager.HitObjectRadius(currentBeatmap.DifficultySection.CircleSize);
-            hitObjectRadius *= isSliding ? 2.4f : 1;
-
-            if (isSliding)
+            if (hitObject is Slider && osuManager.CurrentTime > hitObject.StartTime)
             {
                 float sliderDuration = hitObject.EndTime - hitObject.StartTime;
                 float currentSliderTime = osuManager.CurrentTime - hitObject.StartTime;
-                float progress = (currentSliderTime / sliderDuration).Clamp(0, 1) * (hitObject as Slider).Repeats % 1;
+                double progress = (currentSliderTime / sliderDuration).Clamp(0, 1) * (hitObject as Slider).Repeats % 1;
+                progress = lastSliderPath.ProgressAt(progress);
 
-                if (progress * (hitObject as Slider).Repeats % 2 == 1)
-                    progress = 1 - progress;
-
-                hitObjectPosition += new SliderPath(hitObject as Slider).PositionAt(progress);
+                hitObjectPosition += lastSliderPath.PositionAt(progress);
             }
 
             float distanceToObject = Vector2.Distance(osuManager.CursorPosition, hitObjectPosition * osuManager.OsuWindow.PlayfieldRatio);
@@ -321,8 +299,6 @@ namespace osu_rx.Core
 
             return result;
         }
-
-        private Vector2 flipPosition(Vector2 position) => new Vector2(position.X, 384 - position.Y);
 
         private bool intersectsWithOtherHitObjects(int startIndex)
         {

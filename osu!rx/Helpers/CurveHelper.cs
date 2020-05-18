@@ -20,7 +20,7 @@ namespace osu_rx.Helpers
             float bSq = (a - c).LengthSquared();
             float cSq = (a - b).LengthSquared();
 
-            if (almostEquals(aSq, 0) || almostEquals(bSq, 0) || almostEquals(cSq, 0))
+            if (aSq.AlmostEquals(0, 1e-3f) || bSq.AlmostEquals(0, 1e-3f) || cSq.AlmostEquals(0, 1e-3f))
                 return new List<Vector2>();
 
             float s = aSq * (bSq + cSq - aSq);
@@ -29,7 +29,7 @@ namespace osu_rx.Helpers
 
             float sum = s + t + u;
 
-            if (almostEquals(sum, 0))
+            if (sum.AlmostEquals(0, 1e-3f))
                 return new List<Vector2>();
 
             Vector2 centre = (s * a + t * b + u * c) / sum;
@@ -194,8 +194,6 @@ namespace osu_rx.Helpers
 
             return true;
         }
-
-        private static bool almostEquals(float a, float b) => Math.Abs(a - b) <= 1e-3f;
     }
 
     //https://github.com/ppy/osu/blob/master/osu.Game/Rulesets/Objects/SliderPath.cs
@@ -210,6 +208,8 @@ namespace osu_rx.Helpers
             get => cumulativeLength.Count == 0 ? 0 : cumulativeLength[cumulativeLength.Count - 1];
         }
 
+        private Slider slider;
+
         private Vector2[] sliderPoints;
 
         private List<Vector2> calculatedPath = new List<Vector2>();
@@ -217,12 +217,23 @@ namespace osu_rx.Helpers
 
         public SliderPath(Slider slider)
         {
+            this.slider = slider;
+
             sliderPoints = slider.SliderPoints.ToArray();
             CurveType = slider.CurveType;
             PixelLength = slider.PixelLength;
 
             calculatePath();
             calculateCumulativeLength();
+        }
+
+        public double ProgressAt(double progress)
+        {
+            double p = progress * slider.Repeats % 1;
+            if (progress * slider.Repeats % 2 == 1)
+                p = 1 - p;
+
+            return p;
         }
 
         public Vector2 PositionAt(double progress)

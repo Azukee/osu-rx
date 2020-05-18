@@ -372,22 +372,19 @@ namespace osu_rx
                 Console.WriteLine("Idling");
                 Console.WriteLine("\nPress ESC to return to the main menu.");
 
-                while (!osuManager.CanLoad && !shouldExit)
+                while (!osuManager.CanPlay && !shouldExit)
                     Thread.Sleep(5);
 
                 if (shouldExit)
                     break;
 
-                var beatmap = osuManager.CurrentBeatmap;
-                if (beatmap == null || beatmap.GeneralSection.Mode != Ruleset.Standard)
+                var beatmap = osuManager.Player.Beatmap;
+                if (beatmap.GeneralSection.Mode != Ruleset.Standard)
                 {
                     Console.Clear();
-                    if (beatmap == null)
-                        Console.WriteLine("Beatmap not found! Please select another beatmap, reimport this one or restart osu! to fix this issue.\n\nReturn to song select to continue or press ESC to return to main menu.");
-                    else
-                        Console.WriteLine("Only osu!standard beatmaps are supported!\n\nReturn to song select to continue or press ESC to return to main menu.");
+                    Console.WriteLine("Only osu!standard beatmaps are supported!\n\nReturn to song select to continue or press ESC to return to main menu.");
 
-                    while (osuManager.CanLoad && !shouldExit)
+                    while (osuManager.CanPlay && !shouldExit)
                         Thread.Sleep(1);
 
                     if (shouldExit)
@@ -395,9 +392,6 @@ namespace osu_rx
 
                     continue;
                 }
-
-                while (!osuManager.CanPlay)
-                    Thread.Sleep(1);
 
                 Console.Clear();
                 Console.WriteLine($"Playing {beatmap.MetadataSection.Artist} - {beatmap.MetadataSection.Title} ({beatmap.MetadataSection.Creator}) [{beatmap.MetadataSection.Version}]");

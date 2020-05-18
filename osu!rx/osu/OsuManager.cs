@@ -2,15 +2,10 @@
 using osu_rx.Helpers;
 using osu_rx.osu.Memory;
 using osu_rx.osu.Memory.Objects;
-using OsuParsers.Beatmaps;
-using OsuParsers.Database;
-using OsuParsers.Decoders;
 using OsuParsers.Enums;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
-using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
@@ -26,10 +21,6 @@ namespace osu_rx.osu
 
         private object interProcessOsu;
         private MethodInfo bulkClientDataMethod;
-
-        private FileSystemWatcher fileSystemWatcher;
-        private OsuDatabase osuDatabase;
-        private string databaseHash;
 
         public OsuProcess OsuProcess { get; private set; }
 
@@ -100,30 +91,6 @@ namespace osu_rx.osu
             {
                 var data = bulkClientDataMethod.Invoke(interProcessOsu, null);
                 return (string)data.GetType().GetField("BeatmapChecksum").GetValue(data);
-            }
-        }
-
-        private List<(string MD5, Beatmap Beatmap)> beatmapCache = new List<(string, Beatmap)>();
-        private List<(string MD5, string PathToBeatmap)> newlyImported = new List<(string, string)>();
-        public Beatmap CurrentBeatmap
-        {
-            get
-            {
-                updateDatabase();
-
-                (string MD5, Beatmap Beatmap) beatmap = (string.Empty, null);
-
-                if (beatmapCache.Find(b => b.MD5 == BeatmapChecksum) is var cachedBeatmap && cachedBeatmap != default)
-                    beatmap = cachedBeatmap;
-                else if (osuDatabase.Beatmaps.Find(b => b.MD5Hash == BeatmapChecksum) is var dbBeatmap && dbBeatmap != default)
-                    beatmap = (dbBeatmap.MD5Hash, BeatmapDecoder.Decode($@"{SongsPath}\{dbBeatmap.FolderName}\{dbBeatmap.FileName}"));
-                else if (newlyImported.Find(b => b.MD5 == BeatmapChecksum) is var importedBeatmap && importedBeatmap != default)
-                    beatmap = (importedBeatmap.MD5, BeatmapDecoder.Decode(importedBeatmap.PathToBeatmap));
-
-                if (beatmap != (string.Empty, null) && !beatmapCache.Contains(beatmap))
-                    beatmapCache.Add(beatmap);
-
-                return beatmap.Beatmap;
             }
         }
 
@@ -226,39 +193,10 @@ namespace osu_rx.osu
 
             OsuWindow = new OsuWindow(osuProcess.MainWindowHandle);
 
-            PathToOsu = Path.GetDirectoryName(OsuProcess.Process.MainModule.FileName);
-            parseConfig();
-
             scanMemory();
             connectToIPC();
 
-            initializeBeatmapWatcher();
-
             return true;
-        }
-
-        private void parseConfig()
-        {
-            Console.WriteLine("\nParsing osu! config...");
-
-            string pathToConfig = $@"{PathToOsu}\osu!.{Environment.UserName}.cfg";
-
-            if (File.Exists(pathToConfig))
-            {
-                foreach (string line in File.ReadAllLines(pathToConfig))
-                {
-                    if (line.StartsWith("BeatmapDirectory"))
-                    {
-                        string path = line.Split('=')[1].Trim();
-                        if (!path.Contains(":\\"))
-                            path = Path.Combine(PathToOsu, path);
-
-                        SongsPath = Path.GetFullPath(path);
-                    }
-                }
-            }
-            else
-                SongsPath = $@"{PathToOsu}\Songs";
         }
 
         private UIntPtr timeAddress;
@@ -271,8 +209,8 @@ namespace osu_rx.osu
                 Console.WriteLine("\nScanning for memory addresses (this may take a while)...");
 
                 //TODO: gooood this is dirty af
-                if (OsuProcess.FindPattern(Signatures.Time.Pattern, out UIntPtr timeResult) 
-                    && OsuProcess.FindPattern(Signatures.State.Pattern, out UIntPtr stateResult) 
+                if (OsuProcess.FindPattern(Signatures.Time.Pattern, out UIntPtr timeResult)
+                    && OsuProcess.FindPattern(Signatures.State.Pattern, out UIntPtr stateResult)
                     && OsuProcess.FindPattern(Signatures.ReplayMode.Pattern, out UIntPtr replayModeResult)
                     && OsuProcess.FindPattern(Signatures.Player.Pattern, out UIntPtr playerResult))
                 {
@@ -285,7 +223,7 @@ namespace osu_rx.osu
             catch { }
             finally
             {
-                if (timeAddress == UIntPtr.Zero || stateAddress == UIntPtr.Zero || replayModeAddress == UIntPtr.Zero 
+                if (timeAddress == UIntPtr.Zero || stateAddress == UIntPtr.Zero || replayModeAddress == UIntPtr.Zero
                     || Player == null || Player.PointerToBaseAddress == UIntPtr.Zero)
                 {
                     Console.WriteLine("\nScanning failed! Using IPC fallback...");
@@ -308,54 +246,6 @@ namespace osu_rx.osu
 
             interProcessOsu = Activator.GetObject(interProcessOsuType, "ipc://osu!/loader");
             bulkClientDataMethod = interProcessOsuType.GetMethod("GetBulkClientData");
-        }
-
-        private void initializeBeatmapWatcher()
-        {
-            Console.WriteLine("\nLooking for beatmaps...");
-
-            updateDatabase();
-
-            fileSystemWatcher = new FileSystemWatcher(SongsPath);
-            fileSystemWatcher.Created += (object sender, FileSystemEventArgs e) => onNewBeatmapImport(e.FullPath);
-            fileSystemWatcher.Changed += (object sender, FileSystemEventArgs e) => onNewBeatmapImport(e.FullPath);
-            fileSystemWatcher.EnableRaisingEvents = true;
-            fileSystemWatcher.IncludeSubdirectories = true;
-
-            var lastModified = osuDatabase.Beatmaps.Max(b => b.LastModifiedTime);
-            foreach (var dir in new DirectoryInfo(SongsPath).EnumerateDirectories().OrderByDescending(d => d.LastWriteTimeUtc))
-                if (dir.LastWriteTimeUtc >= lastModified)
-                    dir.EnumerateFiles("*.osu").ToList().ForEach(f => onNewBeatmapImport(f.FullName));
-        }
-
-        private void updateDatabase()
-        {
-            string currentDatabaseHash = CryptoHelper.GetMD5String(File.ReadAllBytes($@"{PathToOsu}\osu!.db"));
-            if (currentDatabaseHash != databaseHash)
-            {
-                databaseHash = currentDatabaseHash;
-                osuDatabase = DatabaseDecoder.DecodeOsu($@"{PathToOsu}\osu!.db");
-            }
-        }
-
-        private void onNewBeatmapImport(string path)
-        {
-            if (path.EndsWith(".osu"))
-            {
-                try
-                {
-                    (string MD5, string PathToBeatmap) beatmap = (CryptoHelper.GetMD5String(File.ReadAllBytes(path)), path);
-                    if (newlyImported.Exists(b => b.MD5 == beatmap.MD5))
-                        newlyImported.RemoveAll(b => b.MD5 == beatmap.MD5);
-
-                    newlyImported.Add(beatmap);
-                }
-                catch (IOException) //try again if file is already being used
-                {
-                    Thread.Sleep(500);
-                    onNewBeatmapImport(path);
-                }
-            }
         }
     }
 }
