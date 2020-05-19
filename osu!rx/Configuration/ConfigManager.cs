@@ -91,6 +91,18 @@ namespace osu_rx.Configuration
             set => config.SetValue<int>("HitscanMaxDistance", value);
         }
 
+        public int HitScanMissChance
+        {
+            get => config.GetValue<int>("HitScanMissChance", 20);
+            set => config.SetValue<int>("HitScanMissChance", value);
+        }
+
+        public bool HitScanMissAfterHitWindow50
+        {
+            get => config.GetValue<bool>("HitScanMissAfterHitWindow50", true);
+            set => config.SetValue<bool>("HitScanMissAfterHitWindow50", value);
+        }
+
         public bool EnableTimewarp
         {
             get => config.GetValue<bool>("EnableTimewarp", false);

@@ -63,6 +63,7 @@
     <Compile Include="Core\Relax.cs" />
     <Compile Include="Core\Timewarp.cs" />
     <Compile Include="Dependencies\DependencyContainer.cs" />
+    <Compile Include="Helpers\CurveHelper.cs" />
     <Compile Include="osu\Memory\Objects\OsuHitObjectManager.cs" />
     <Compile Include="osu\Memory\Objects\OsuPlayer.cs" />
     <Compile Include="osu\Memory\Signatures.cs" />

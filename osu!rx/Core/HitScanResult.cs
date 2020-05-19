@@ -4,6 +4,7 @@
     {
         CanHit,
         ShouldHit,
-        Wait
+        Wait,
+        MoveToNextObject
     }
 }

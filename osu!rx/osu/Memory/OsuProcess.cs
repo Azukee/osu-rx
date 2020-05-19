@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text;
 using static osu_rx.osu.Memory.OsuProcess;
 
 namespace osu_rx.osu.Memory
@@ -104,6 +105,15 @@ namespace osu_rx.osu.Memory
         public double ReadDouble(UIntPtr address) => BitConverter.ToDouble(ReadMemory(address, sizeof(double)), 0);
 
         public bool ReadBool(UIntPtr address) => BitConverter.ToBoolean(ReadMemory(address, sizeof(bool)), 0);
+
+        public string ReadString(UIntPtr address, Encoding encoding = null)
+        {
+            encoding = encoding ?? Encoding.UTF8;
+            UIntPtr stringAddress = (UIntPtr)ReadInt32(address);
+            int length = ReadInt32(stringAddress + 0x4) * (encoding == Encoding.UTF8 ? 2 : 1);
+
+            return encoding.GetString(ReadMemory(stringAddress + 0x8, (uint)length)).Replace("\0", string.Empty);
+        }
 
         private byte?[] parsePattern(string pattern)
         {
